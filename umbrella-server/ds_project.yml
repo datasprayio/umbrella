@@ -1,0 +1,33 @@
+---
+$schema: "https://dataspray.io/project/schema.json"
+version: V0.0.0
+namespace: io.dataspray
+dataFormats:
+- serde: JSON
+  name: IncomingRequest
+datasprayStores:
+- streams:
+  - dataFormatName: "IncomingRequest"
+    name: "incoming-requests"
+  name: "default"
+dynamoState:
+  lsiCount: 1
+  gsiCount: 0
+javaProcessors:
+- name: "ingester"
+  target: DATASPRAY
+  outputStreams:
+  - storeType: DATASPRAY
+    storeName: default
+    streamName: incoming-requests
+  web:
+    isPublic: true
+    endpoints:
+    - name: "handleIncomingRequest"
+      contentTypes: ["application/json"]
+      path: "/account/{accountId}/incoming"
+      pathParams:
+      - name: "accountId"
+      bodyDataFormatName: IncomingRequest
+  hasDynamoState: true
+name: "umbrella"

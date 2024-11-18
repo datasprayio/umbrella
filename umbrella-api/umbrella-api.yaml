@@ -1,0 +1,266 @@
+openapi: 3.0.3
+info:
+  title: DataSpray Umbrella Shield API
+  version: 0.0.1
+
+servers:
+  - url: https://api.umbrella.dataspray.io
+
+security:
+  - apikey: []
+
+components:
+  securitySchemes:
+    apikey:
+      type: apiKey
+      in: header
+      name: Authorization
+  schemas:
+    Headers:
+      type: object
+      additionalProperties:
+        type: string
+    Attributes:
+      type: object
+      additionalProperties:
+        type: string
+    Cookies:
+      type: array
+      items:
+        title: Cookie
+        type: object
+        required:
+          - name
+          - value
+        properties:
+          name:
+            type: string
+          value:
+            type: string
+          maxAge:
+            type: integer
+            format: int64
+          domain:
+            type: string
+          path:
+            type: string
+          secure:
+            type: boolean
+          httpOnly:
+            type: boolean
+          sameSite:
+            type: string
+    NodeIdentification:
+      type: string
+    OperationMode:
+      type: string
+      enum:
+        - BLOCKING
+        - MONITOR
+        - DISABLED
+    HttpAction:
+      type: object
+      required:
+        - requestProcess
+      properties:
+        requestProcess:
+          $ref: '#/components/schemas/RequestProcess'
+        responseStatus:
+          $ref: '#/components/schemas/ResponseStatus'
+        requestMetadata:
+          $ref: '#/components/schemas/Attributes'
+        responseHeaders:
+          $ref: '#/components/schemas/Headers'
+        responseCookies:
+          $ref: '#/components/schemas/Cookies'
+    RequestProcess:
+      type: string
+      enum:
+        - ALLOW
+        - BLOCK
+    ResponseStatus:
+        type: integer
+        format: int64
+    Config:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          $ref: '#/components/schemas/OperationMode'
+        timeoutMs:
+          type: integer
+          format: int64
+        collectAdditionalHeaders:
+          type: array
+          items:
+              type: string
+    HttpData:
+        type: object
+        properties:
+          ts:
+            type: string
+            format: date-time
+          uri:
+            type: string
+          method:
+            type: string
+          proto:
+            type: string
+          ip:
+            type: string
+          hXFwdProto:
+            type: string
+          hTrueClientIp:
+            type: string
+          hXRealIp:
+            type: string
+          hXFwdFor:
+            type: string
+          hVia:
+            type: string
+          port:
+            type: integer
+            format: int64
+          hXFwdPort:
+            type: string
+          hXFwdHost:
+            type: string
+          hXReqWith:
+            type: string
+          hUserAgent:
+            type: string
+          hAuthPrefix:
+            type: string
+          hAuthSize:
+            type: integer
+            format: int64
+          hXReqId:
+            type: string
+          hAccept:
+            type: string
+          hAcceptLanguage:
+            type: string
+          hAcceptCharset:
+            type: string
+          hAcceptEncoding:
+            type: string
+          hConnection:
+            type: string
+          hContentType:
+            type: string
+          hFrom:
+            type: string
+          hHost:
+            type: string
+          hOrigin:
+            type: string
+          contentLength:
+            type: integer
+            format: int64
+          hPragma:
+            type: string
+          hReferer:
+            type: string
+          hSecChDevMem:
+            type: string
+          hSecChUa:
+            type: string
+          hSecChUaModel:
+            type: string
+          hSecChUaFull:
+            type: string
+          hSecChUaMobile:
+            type: string
+          hSecChUaPlatform:
+            type: string
+          hSecChUaArch:
+            type: string
+          hSecFetchDest:
+            type: string
+          hSecFetchMode:
+            type: string
+          hSecFetchSite:
+            type: string
+          hSecFetchUser:
+            type: string
+          tlsCipher:
+            type: string
+          tlsProto:
+            type: string
+          headerNames:
+            type: array
+            items:
+              type: string
+          cookieNames:
+            items:
+              type: string
+          additionalHeaders:
+            type: object
+            additionalProperties:
+              type: string
+
+paths:
+  /node/ping:
+    post:
+      operationId: nodePing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: PingRequest
+              type: object
+              required:
+                - nodeId
+              properties:
+                nodeId:
+                  $ref: '#/components/schemas/NodeIdentification'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                title: PingResponse
+                type: object
+                required:
+                  - config
+                properties:
+                  config:
+                    $ref: '#/components/schemas/Config'
+
+  /event/http:
+    post:
+      operationId: httpEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: HttpEventRequest
+              type: object
+              required:
+                - nodeId
+              properties:
+                nodeId:
+                  $ref: '#/components/schemas/NodeIdentification'
+                currentMode:
+                  $ref: '#/components/schemas/OperationMode'
+                data:
+                  $ref: '#/components/schemas/HttpData'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                title: HttpEventResponse
+                type: object
+                required:
+                  - action
+                properties:
+                  action:
+                    $ref: '#/components/schemas/HttpAction'
+                  configRefresh:
+                    $ref: '#/components/schemas/Config'
