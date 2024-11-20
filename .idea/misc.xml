@@ -8,6 +8,8 @@
         <option value="$PROJECT_DIR$/umbrella-server/ingester/pom.xml" />
         <option value="$PROJECT_DIR$/umbrella-server/pom.xml" />
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/umbrella-stream/ingester/pom-parent.xml" />
+        <option value="$PROJECT_DIR$/umbrella-stream/ingester/pom.xml" />
       </list>
     </option>
   </component>

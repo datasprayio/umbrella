@@ -6,6 +6,8 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="umbrella-api" />
+        <module name="umbrella-tomcat" />
       </profile>
       <profile name="Annotation profile for Umbrella Server Ingester" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -14,8 +16,13 @@
         <processor name="lombok.launch.AnnotationProcessorHider$AnnotationProcessor" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
         </processorPath>
+        <module name="umbrella-server" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="umbrella" target="21" />
+    </bytecodeTargetLevel>
   </component>
 </project>

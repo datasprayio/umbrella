@@ -2,12 +2,9 @@ package io.dataspray;
 
 import io.dataspray.autogen.AbstractTest;
 import io.dataspray.autogen.HttpEventRequest;
-import io.dataspray.autogen.HttpEventResponse;
 import io.dataspray.autogen.PingRequest;
-import io.dataspray.autogen.PingResponse;
 import io.dataspray.autogen.TestCoordinator;
 import io.dataspray.runner.dto.web.HttpResponse;
-import io.dataspray.runner.dto.web.MockHttpRequest;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -20,11 +17,11 @@ public class IngesterTest extends AbstractTest {
         TestCoordinator coordinator = TestCoordinator.createForWeb();
         HttpResponse response = processor.webNodePing(
                 Mockito.mock(PingRequest.class),
-            "authorizationHeader",
+                "apikey someKey",
                 HttpResponse.builder(),
                 coordinator);
 
-        Assert.assertEquals(204, response.getStatusCode());
+        Assert.assertEquals(200, response.getStatusCode());
         coordinator.assertSentNoneHttpEventRequest();
     }
 
@@ -34,11 +31,11 @@ public class IngesterTest extends AbstractTest {
         TestCoordinator coordinator = TestCoordinator.createForWeb();
         HttpResponse response = processor.webHttpEvent(
                 Mockito.mock(HttpEventRequest.class),
-            "authorizationHeader",
+                "apikey someKey",
                 HttpResponse.builder(),
                 coordinator);
 
-        Assert.assertEquals(204, response.getStatusCode());
+        Assert.assertEquals(200, response.getStatusCode());
         coordinator.assertSentNoneHttpEventRequest();
     }
 }
