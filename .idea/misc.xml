@@ -6,6 +6,8 @@
       <list>
         <option value="$PROJECT_DIR$/umbrella-integrations/umbrella-tomcat/pom.xml" />
         <option value="$PROJECT_DIR$/umbrella-server/ingester/pom.xml" />
+        <option value="$PROJECT_DIR$/umbrella-server/pom.xml" />
+        <option value="$PROJECT_DIR$/pom.xml" />
       </list>
     </option>
   </component>

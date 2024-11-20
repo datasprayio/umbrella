@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>io.dataspray.umbrella</groupId>
-    <artifactId>umbrella-server</artifactId>
+    <artifactId>umbrella-stream</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -52,6 +52,19 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <executions>
+                    <execution>
+                        <id>dst-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>dst</executable>
+                            <arguments>
+                                <argument>clean</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>dst-generate</id>
                         <phase>generate-resources</phase>

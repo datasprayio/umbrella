@@ -24,7 +24,7 @@
     <modules>
         <module>umbrella-api</module>
         <module>umbrella-integrations</module>
-        <module>umbrella-server</module>
+        <module>umbrella-stream</module>
     </modules>
 
     <scm>
