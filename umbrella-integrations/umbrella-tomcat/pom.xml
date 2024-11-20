@@ -8,6 +8,9 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
+    <name>Umbrella Integration Tomcat</name>
+    <url>https://dataspray.io</url>
+
     <properties>
         <!-- Matches OpenApi generated pom.xml -->
         <okhttp.version>4.12.0</okhttp.version>
@@ -90,6 +93,33 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>io.dataspray.umbrella</groupId>
+                                    <artifactId>umbrella-api</artifactId>
+                                    <classifier>openapi</classifier>
+                                    <version>0.0.1-SNAPSHOT</version>
+                                    <type>tar.gz</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/unpacked-resources/openapi</outputDirectory>
+                                    <includes>*</includes>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <version>7.9.0</version>
@@ -99,8 +129,9 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                         <configuration>
-                            <inputSpec>${project.basedir}/../../umbrella-api/umbrella-api.yaml</inputSpec>
+                            <inputSpec>${project.build.directory}/unpacked-resources/openapi/umbrella-api.yaml</inputSpec>
                             <generatorName>java</generatorName>
                             <ignoreFileOverride>
                                 ${project.basedir}/src/main/openapi/client/.openapi-generator-ignore

@@ -1,0 +1,13 @@
+{
+  "name": "umbrella-api-json-schema",
+  "version": "1.0.0",
+  "description": "JSON schema for Umbrella API",
+  "scripts": {
+    "generate-json-schema": "node src/main/javascript/generateJsonSchema.js src/main/openapi/umbrella-api.yaml target/generated-resources/json-schema/"
+  },
+  "dependencies": {
+    "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
+    "@apidevtools/json-schema-ref-parser": "^11.7.2",
+    "js-yaml": "^4.1.0"
+  }
+}

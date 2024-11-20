@@ -4,11 +4,17 @@ version: V0.0.0
 namespace: io.dataspray
 dataFormats:
 - serde: JSON
-  name: IncomingRequest
+  name: HttpEventRequest
+- serde: JSON
+  name: HttpEventResponse
+- serde: JSON
+  name: PingRequest
+- serde: JSON
+  name: PingResponse
 datasprayStores:
 - streams:
-  - dataFormatName: "IncomingRequest"
-    name: "incoming-requests"
+  - dataFormatName: "HttpEventRequest"
+    name: "http-events"
   name: "default"
 dynamoState:
   lsiCount: 1
@@ -19,15 +25,25 @@ javaProcessors:
   outputStreams:
   - storeType: DATASPRAY
     storeName: default
-    streamName: incoming-requests
+    streamName: http-events
   web:
     isPublic: true
     endpoints:
-    - name: "handleIncomingRequest"
+    - name: "nodePing"
       contentTypes: ["application/json"]
-      path: "/account/{accountId}/incoming"
-      pathParams:
-      - name: "accountId"
-      bodyDataFormatName: IncomingRequest
+      path: "/node/ping"
+      headers:
+        - name: "Authorization"
+          isRequired: true
+      requestDataFormatName: PingRequest
+      responseDataFormatName: PingResponse
+    - name: "httpEvent"
+      contentTypes: ["application/json"]
+      path: "/event/http"
+      headers:
+      - name: "Authorization"
+        isRequired: true
+      requestDataFormatName: HttpEventRequest
+      responseDataFormatName: HttpEventResponse
   hasDynamoState: true
 name: "umbrella"

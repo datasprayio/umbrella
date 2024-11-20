@@ -202,7 +202,7 @@ components:
 
 paths:
   /node/ping:
-    post:
+    get:
       operationId: nodePing
       requestBody:
         required: true
