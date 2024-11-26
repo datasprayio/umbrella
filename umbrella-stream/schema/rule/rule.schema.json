@@ -4,7 +4,9 @@
   "title": "Rule",
   "description": "Sample JSON schema; for utilities to edit this schema see https://json-schema.org/implementations.html",
   "type": "object",
-  "required": [ "id" ],
+  "required": [
+    "id"
+  ],
   "properties": {
     "name": {
       "type": "string"

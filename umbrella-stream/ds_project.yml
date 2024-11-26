@@ -3,86 +3,86 @@ $schema: "https://dataspray.io/project/schema.json"
 version: V0.0.0
 namespace: io.dataspray.umbrella
 dataFormats:
-- serde: JSON
-  name: HttpEventRequest
-- serde: JSON
-  name: HttpEventResponse
-- serde: JSON
-  name: PingRequest
-- serde: JSON
-  name: PingResponse
-- serde: JSON
-  name: Rules
-- serde: JSON
-  name: Rule
+  - serde: JSON
+    name: HttpEventRequest
+  - serde: JSON
+    name: HttpEventResponse
+  - serde: JSON
+    name: PingRequest
+  - serde: JSON
+    name: PingResponse
+  - serde: JSON
+    name: Rules
+  - serde: JSON
+    name: Rule
 datasprayStores:
-- streams:
-  - dataFormatName: "HttpEventRequest"
-    name: "http-events"
-  name: "default"
+  - streams:
+      - dataFormatName: "HttpEventRequest"
+        name: "http-events"
+    name: "default"
 dynamoState:
   lsiCount: 1
   gsiCount: 0
 javaProcessors:
-- name: "ingester"
-  target: DATASPRAY
-  hasDynamoState: true
-  includeSingleTableLibrary: true
-  outputStreams:
-  - storeType: DATASPRAY
-    storeName: default
-    streamName: http-events
-  web:
-    isPublic: true
-    endpoints:
-    - name: "nodePing"
-      contentTypes: ["application/json"]
-      method: 'POST'
-      path: "/node/ping"
-      headers:
-        - name: "Authorization"
-          isRequired: true
-      requestDataFormatName: PingRequest
-      responseDataFormatName: PingResponse
-    - name: "httpEvent"
-      contentTypes: ["application/json"]
-      method: 'POST'
-      path: "/event/http"
-      headers:
-      - name: "Authorization"
-        isRequired: true
-      requestDataFormatName: HttpEventRequest
-      responseDataFormatName: HttpEventResponse
-- name: "controller"
-  target: DATASPRAY
-  hasDynamoState: true
-  includeSingleTableLibrary: true
-  web:
-    isPublic: true
-    endpoints:
-      - name: "ruleList"
-        contentTypes: ["application/json"]
-        method: 'GET'
-        path: "/rules"
-        headers:
-          - name: "Authorization"
-            isRequired: true
-        responseDataFormatName: Rules
-      - name: "ruleSet"
-        contentTypes: ["application/json"]
-        method: 'PUT'
-        path: "/rule/{priority}"
-        pathParams:
-          - name: priority
-        headers:
-          - name: "Authorization"
-            isRequired: true
-        requestDataFormatName: Rule
-      - name: "ruleDelete"
-        contentTypes: ["application/json"]
-        method: 'DELETE'
-        path: "/rule/{priority}"
-        headers:
-          - name: "Authorization"
-            isRequired: true
+  - name: "ingester"
+    target: DATASPRAY
+    hasDynamoState: true
+    includeSingleTableLibrary: true
+    outputStreams:
+      - storeType: DATASPRAY
+        storeName: default
+        streamName: http-events
+    web:
+      isPublic: true
+      endpoints:
+        - name: "nodePing"
+          contentTypes: [ "application/json" ]
+          method: 'POST'
+          path: "/node/ping"
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          requestDataFormatName: PingRequest
+          responseDataFormatName: PingResponse
+        - name: "httpEvent"
+          contentTypes: [ "application/json" ]
+          method: 'POST'
+          path: "/event/http"
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          requestDataFormatName: HttpEventRequest
+          responseDataFormatName: HttpEventResponse
+  - name: "controller"
+    target: DATASPRAY
+    hasDynamoState: true
+    includeSingleTableLibrary: true
+    web:
+      isPublic: true
+      endpoints:
+        - name: "ruleList"
+          contentTypes: [ "application/json" ]
+          method: 'GET'
+          path: "/rules"
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          responseDataFormatName: Rules
+        - name: "ruleSet"
+          contentTypes: [ "application/json" ]
+          method: 'PUT'
+          path: "/rule/{priority}"
+          pathParams:
+            - name: priority
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          requestDataFormatName: Rule
+        - name: "ruleDelete"
+          contentTypes: [ "application/json" ]
+          method: 'DELETE'
+          path: "/rule/{priority}"
+          headers:
+            - name: "Authorization"
+              isRequired: true
 name: "umbrella"

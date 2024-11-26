@@ -7,7 +7,7 @@ servers:
   - url: https://api.umbrella.dataspray.io
 
 security:
-  - apikey: []
+  - apikey: [ ]
 
 components:
   securitySchemes:
@@ -79,8 +79,8 @@ components:
         - ALLOW
         - BLOCK
     ResponseStatus:
-        type: integer
-        format: int64
+      type: integer
+      format: int64
     Config:
       type: object
       required:
@@ -94,111 +94,111 @@ components:
         collectAdditionalHeaders:
           type: array
           items:
-              type: string
+            type: string
     HttpData:
-        type: object
-        properties:
-          ts:
+      type: object
+      properties:
+        ts:
+          type: string
+          format: date-time
+        uri:
+          type: string
+        method:
+          type: string
+        proto:
+          type: string
+        ip:
+          type: string
+        hXFwdProto:
+          type: string
+        hTrueClientIp:
+          type: string
+        hXRealIp:
+          type: string
+        hXFwdFor:
+          type: string
+        hVia:
+          type: string
+        port:
+          type: integer
+          format: int64
+        hXFwdPort:
+          type: string
+        hXFwdHost:
+          type: string
+        hXReqWith:
+          type: string
+        hUserAgent:
+          type: string
+        hAuthPrefix:
+          type: string
+        hAuthSize:
+          type: integer
+          format: int64
+        hXReqId:
+          type: string
+        hAccept:
+          type: string
+        hAcceptLanguage:
+          type: string
+        hAcceptCharset:
+          type: string
+        hAcceptEncoding:
+          type: string
+        hConnection:
+          type: string
+        hContentType:
+          type: string
+        hFrom:
+          type: string
+        hHost:
+          type: string
+        hOrigin:
+          type: string
+        contentLength:
+          type: integer
+          format: int64
+        hPragma:
+          type: string
+        hReferer:
+          type: string
+        hSecChDevMem:
+          type: string
+        hSecChUa:
+          type: string
+        hSecChUaModel:
+          type: string
+        hSecChUaFull:
+          type: string
+        hSecChUaMobile:
+          type: string
+        hSecChUaPlatform:
+          type: string
+        hSecChUaArch:
+          type: string
+        hSecFetchDest:
+          type: string
+        hSecFetchMode:
+          type: string
+        hSecFetchSite:
+          type: string
+        hSecFetchUser:
+          type: string
+        tlsCipher:
+          type: string
+        tlsProto:
+          type: string
+        headerNames:
+          type: array
+          items:
             type: string
-            format: date-time
-          uri:
+        cookieNames:
+          items:
             type: string
-          method:
+        additionalHeaders:
+          type: object
+          additionalProperties:
             type: string
-          proto:
-            type: string
-          ip:
-            type: string
-          hXFwdProto:
-            type: string
-          hTrueClientIp:
-            type: string
-          hXRealIp:
-            type: string
-          hXFwdFor:
-            type: string
-          hVia:
-            type: string
-          port:
-            type: integer
-            format: int64
-          hXFwdPort:
-            type: string
-          hXFwdHost:
-            type: string
-          hXReqWith:
-            type: string
-          hUserAgent:
-            type: string
-          hAuthPrefix:
-            type: string
-          hAuthSize:
-            type: integer
-            format: int64
-          hXReqId:
-            type: string
-          hAccept:
-            type: string
-          hAcceptLanguage:
-            type: string
-          hAcceptCharset:
-            type: string
-          hAcceptEncoding:
-            type: string
-          hConnection:
-            type: string
-          hContentType:
-            type: string
-          hFrom:
-            type: string
-          hHost:
-            type: string
-          hOrigin:
-            type: string
-          contentLength:
-            type: integer
-            format: int64
-          hPragma:
-            type: string
-          hReferer:
-            type: string
-          hSecChDevMem:
-            type: string
-          hSecChUa:
-            type: string
-          hSecChUaModel:
-            type: string
-          hSecChUaFull:
-            type: string
-          hSecChUaMobile:
-            type: string
-          hSecChUaPlatform:
-            type: string
-          hSecChUaArch:
-            type: string
-          hSecFetchDest:
-            type: string
-          hSecFetchMode:
-            type: string
-          hSecFetchSite:
-            type: string
-          hSecFetchUser:
-            type: string
-          tlsCipher:
-            type: string
-          tlsProto:
-            type: string
-          headerNames:
-            type: array
-            items:
-              type: string
-          cookieNames:
-            items:
-              type: string
-          additionalHeaders:
-            type: object
-            additionalProperties:
-              type: string
 
 paths:
   /node/ping:

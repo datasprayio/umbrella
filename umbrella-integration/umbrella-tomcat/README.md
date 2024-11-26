@@ -3,14 +3,14 @@
 ## Features
 
 - Auto-syncing configuration from the Umbrella API:
-  - Mode of operation: Disabled, Block, Monitor
-  - Configure maximum latency overhead of blocking before blocking is skipped.
+    - Mode of operation: Disabled, Block, Monitor
+    - Configure maximum latency overhead of blocking before blocking is skipped.
 - Modifies `HttpServletRequest`:
-  - Adds custom attributes
+    - Adds custom attributes
 - Modifies `HttpServletResponse`:
-  - Overrides status code
-  - Adds custom headers
-  - Adds custom cookies
+    - Overrides status code
+    - Adds custom headers
+    - Adds custom cookies
 
 ## Installation
 
