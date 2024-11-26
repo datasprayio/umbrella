@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "Rule",
+  "title": "Rule",
+  "description": "Sample JSON schema; for utilities to edit this schema see https://json-schema.org/implementations.html",
+  "type": "object",
+  "required": [ "id" ],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "balance": {
+      "type": "number"
+    }
+  }
+}

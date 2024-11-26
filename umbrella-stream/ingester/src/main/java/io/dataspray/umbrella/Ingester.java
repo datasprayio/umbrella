@@ -1,56 +1,54 @@
 package io.dataspray.umbrella;
 
 import com.google.common.base.Strings;
-import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 import io.dataspray.runner.dto.web.HttpResponse;
+import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 import io.dataspray.runner.dto.web.HttpResponseException;
 import io.dataspray.umbrella.autogen.*;
+import io.dataspray.umbrella.store.HealthStore;
 import io.dataspray.umbrella.store.OrganizationStore;
 import io.dataspray.umbrella.store.OrganizationStore.Organization;
-import jakarta.annotation.Nullable;
-
 import java.util.Optional;
 
 public class Ingester implements Processor {
 
     OrganizationStore organizationStore;
+    HealthStore healthStore;
+
+    public Ingester() {
+    }
 
     public HttpResponse webNodePing(
-        PingRequest pingRequest,
-        String authorizationHeader,
-        HttpResponseBuilder<PingResponse> responseBuilder,
-        WebCoordinator coordinator
+            PingRequest pingRequest,
+            String authorizationHeader,
+            HttpResponseBuilder<PingResponse> responseBuilder,
+            WebCoordinator coordinator
     ) {
         Organization organization = authorize(authorizationHeader, responseBuilder);
 
-        // TODO
+        healthStore.ping(organization.getOrganizationName(), pingRequest.getNodeId());
 
-        return responseBuilder
-                .ok(PingResponse.builder()
-                        .withConfig(Config.builder()
-                                .withMode(organization.getMode())
-                                .build())
-                        .build())
-                .build();
+        return responseBuilder.ok(PingResponse.builder()
+                .withConfig(Config.builder()
+                        .withMode(organization.getMode())
+                        .build()).build()).build();
     }
 
     public HttpResponse webHttpEvent(
-        HttpEventRequest httpEventRequest,
-        String authorizationHeader,
-        HttpResponseBuilder<HttpEventResponse> responseBuilder,
-        WebCoordinator coordinator
+            HttpEventRequest httpEventRequest,
+            String authorizationHeader,
+            HttpResponseBuilder<HttpEventResponse> responseBuilder,
+            WebCoordinator coordinator
     ) {
         Organization organization = authorize(authorizationHeader, responseBuilder);
 
+        coordinator.sendToHttpEvents("", httpEventRequest);
         // TODO
 
-        return responseBuilder
-                .ok(HttpEventResponse.builder()
-                        .withAction(Action.builder()
-                                .withRequestProcess(Action.RequestProcess.ALLOW)
-                                .build())
-                        .build())
-                .build();
+        return responseBuilder.ok(HttpEventResponse.builder()
+                .withAction(Action.builder()
+                        .withRequestProcess(Action.RequestProcess.ALLOW)
+                        .build()).build()).build();
     }
 
     private Organization authorize(

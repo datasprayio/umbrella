@@ -10,6 +10,9 @@
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/umbrella-stream/ingester/pom-parent.xml" />
         <option value="$PROJECT_DIR$/umbrella-stream/ingester/pom.xml" />
+        <option value="$PROJECT_DIR$/umbrella-stream/umbrella-stream-common/pom.xml" />
+        <option value="$PROJECT_DIR$/umbrella-stream/controller/pom.xml" />
+        <option value="$PROJECT_DIR$/umbrella-stream/common/pom.xml" />
       </list>
     </option>
   </component>

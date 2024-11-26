@@ -1,0 +1,6 @@
+## Generated data format types
+src/types/*
+
+## Other
+.DS_Store
+

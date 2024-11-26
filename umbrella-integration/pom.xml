@@ -11,11 +11,11 @@
     </parent>
 
     <groupId>io.dataspray.umbrella</groupId>
-    <artifactId>umbrella-integrations</artifactId>
+    <artifactId>umbrella-integration-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Umbrella Integrations</name>
+    <name>Umbrella Integration Parent</name>
     <url>https://dataspray.io</url>
 
     <modules>

@@ -9,22 +9,19 @@
         <relativePath>pom-parent.xml</relativePath>
     </parent>
 
-    <artifactId>ingester</artifactId>
+    <artifactId>controller</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Umbrella Ingester</name>
+    <name>Umbrella Controller</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>io.dataspray.umbrella</groupId>
-            <artifactId>umbrella-stream-common</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
+        <!-- Add your dependencies here -->
+
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>

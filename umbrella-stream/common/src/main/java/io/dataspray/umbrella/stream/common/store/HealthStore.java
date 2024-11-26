@@ -1,4 +1,4 @@
-package io.dataspray.umbrella.store;
+package io.dataspray.umbrella.stream.common.store;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -12,22 +12,22 @@ import java.util.Optional;
 import static io.dataspray.singletable.TableType.Gsi;
 import static io.dataspray.singletable.TableType.Primary;
 
-public interface OrganizationStore {
+public interface HealthStore {
 
-    Optional<Organization> getByApiKey(String apiKey);
+    void ping(String organization, String nodeId);
 
     @Value
     @AllArgsConstructor
     @EqualsAndHashCode
     @Builder(toBuilder = true)
     @DynamoTable(type = Primary, partitionKeys = "organizationName", rangePrefix = "organization")
-    @DynamoTable(type = Gsi, indexNumber = 1, partitionKeys = "apiKey", rangePrefix = "organizationByApiKey")
-    @RegisterForReflection
     class Organization {
 
         @NonNull
-        @ToString.Exclude
-        String apiKey;
+        String organizationName;
+
+        @NonNull
+        String nodeId;
 
         @NonNull
         String organizationName;

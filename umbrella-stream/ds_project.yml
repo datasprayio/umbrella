@@ -11,6 +11,10 @@ dataFormats:
   name: PingRequest
 - serde: JSON
   name: PingResponse
+- serde: JSON
+  name: Rules
+- serde: JSON
+  name: Rule
 datasprayStores:
 - streams:
   - dataFormatName: "HttpEventRequest"
@@ -22,6 +26,7 @@ dynamoState:
 javaProcessors:
 - name: "ingester"
   target: DATASPRAY
+  hasDynamoState: true
   includeSingleTableLibrary: true
   outputStreams:
   - storeType: DATASPRAY
@@ -32,6 +37,7 @@ javaProcessors:
     endpoints:
     - name: "nodePing"
       contentTypes: ["application/json"]
+      method: 'POST'
       path: "/node/ping"
       headers:
         - name: "Authorization"
@@ -40,11 +46,43 @@ javaProcessors:
       responseDataFormatName: PingResponse
     - name: "httpEvent"
       contentTypes: ["application/json"]
+      method: 'POST'
       path: "/event/http"
       headers:
       - name: "Authorization"
         isRequired: true
       requestDataFormatName: HttpEventRequest
       responseDataFormatName: HttpEventResponse
+- name: "controller"
+  target: DATASPRAY
   hasDynamoState: true
+  includeSingleTableLibrary: true
+  web:
+    isPublic: true
+    endpoints:
+      - name: "ruleList"
+        contentTypes: ["application/json"]
+        method: 'GET'
+        path: "/rules"
+        headers:
+          - name: "Authorization"
+            isRequired: true
+        responseDataFormatName: Rules
+      - name: "ruleSet"
+        contentTypes: ["application/json"]
+        method: 'PUT'
+        path: "/rule/{priority}"
+        pathParams:
+          - name: priority
+        headers:
+          - name: "Authorization"
+            isRequired: true
+        requestDataFormatName: Rule
+      - name: "ruleDelete"
+        contentTypes: ["application/json"]
+        method: 'DELETE'
+        path: "/rule/{priority}"
+        headers:
+          - name: "Authorization"
+            isRequired: true
 name: "umbrella"
