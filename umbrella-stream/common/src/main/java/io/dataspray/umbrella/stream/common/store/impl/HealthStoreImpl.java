@@ -20,39 +20,32 @@
  * SOFTWARE.
  */
 
-package io.dataspray.umbrella.stream.common.store;
+package io.dataspray.umbrella.stream.common.store.impl;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import io.dataspray.singletable.DynamoTable;
-import lombok.*;
+import io.dataspray.singletable.SingleTable;
+import io.dataspray.umbrella.stream.common.store.HealthStore;
+import lombok.RequiredArgsConstructor;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import static io.dataspray.singletable.TableType.Gsi;
-import static io.dataspray.singletable.TableType.Primary;
+@RequiredArgsConstructor
+public class HealthStoreImpl implements HealthStore {
 
-public interface HealthStore {
+    private final SingleTable singleTable;
+    private final DynamoDbClient dynamo;
 
-    void ping(String organization, String nodeId);
+    @Override
+    public void ping(String organization, String nodeId) {
+        throw new UnsupportedOperationException();
+    }
 
-    ImmutableList<Node> listForOrg(String organization);
+    @Override
+    public ImmutableList<Node> listForOrg(String organization) {
+        throw new UnsupportedOperationException();
+    }
 
-    ImmutableList<Node> listAll();
-
-    @Value
-    @AllArgsConstructor
-    @EqualsAndHashCode
-    @Builder(toBuilder = true)
-    @DynamoTable(type = Primary, partitionKeys = "organizationName", rangePrefix = "organization")
-    @DynamoTable(type = Gsi, indexNumber = 1, shardKeys = "organizationName", shardCount = 12, rangePrefix = "organizationSharded", rangeKeys = "organizationName")
-    class Node {
-
-        @NonNull
-        String organizationName;
-
-        @NonNull
-        String id;
-
-        @NonNull
-        Long ttlInEpochSec;
+    @Override
+    public ImmutableList<Node> listAll() {
+        throw new UnsupportedOperationException();
     }
 }

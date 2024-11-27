@@ -2,6 +2,7 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
       <profile name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
@@ -10,16 +11,6 @@
         <module name="umbrella-tomcat" />
         <module name="umbrella-stream-common" />
       </profile>
-      <profile name="Annotation profile for Umbrella Controller" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processor name="lombok.launch.AnnotationProcessorHider$AnnotationProcessor" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
-        </processorPath>
-        <module name="controller" />
-      </profile>
       <profile name="Annotation profile for Umbrella Ingester" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
@@ -27,13 +18,12 @@
         <processor name="lombok.launch.AnnotationProcessorHider$AnnotationProcessor" />
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
         </processorPath>
         <module name="umbrella-server" />
+        <module name="controller" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="starter-parent" target="21" />
       <module name="umbrella" target="21" />
       <module name="umbrella-integration" target="1.8" />
       <module name="umbrella-server (1)" target="1.8" />

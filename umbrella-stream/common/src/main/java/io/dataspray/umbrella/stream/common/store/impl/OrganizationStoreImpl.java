@@ -20,39 +20,23 @@
  * SOFTWARE.
  */
 
-package io.dataspray.umbrella.stream.common.store;
+package io.dataspray.umbrella.stream.common.store.impl;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import io.dataspray.singletable.DynamoTable;
-import lombok.*;
+import io.dataspray.singletable.SingleTable;
+import io.dataspray.umbrella.stream.common.store.OrganizationStore;
+import lombok.RequiredArgsConstructor;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import static io.dataspray.singletable.TableType.Gsi;
-import static io.dataspray.singletable.TableType.Primary;
+import java.util.Optional;
 
-public interface HealthStore {
+@RequiredArgsConstructor
+public class OrganizationStoreImpl implements OrganizationStore {
 
-    void ping(String organization, String nodeId);
+    private final SingleTable singleTable;
+    private final DynamoDbClient dynamo;
 
-    ImmutableList<Node> listForOrg(String organization);
-
-    ImmutableList<Node> listAll();
-
-    @Value
-    @AllArgsConstructor
-    @EqualsAndHashCode
-    @Builder(toBuilder = true)
-    @DynamoTable(type = Primary, partitionKeys = "organizationName", rangePrefix = "organization")
-    @DynamoTable(type = Gsi, indexNumber = 1, shardKeys = "organizationName", shardCount = 12, rangePrefix = "organizationSharded", rangeKeys = "organizationName")
-    class Node {
-
-        @NonNull
-        String organizationName;
-
-        @NonNull
-        String id;
-
-        @NonNull
-        Long ttlInEpochSec;
+    @Override
+    public Optional<Organization> getByApiKey(String apiKey) {
+        throw new UnsupportedOperationException();
     }
 }

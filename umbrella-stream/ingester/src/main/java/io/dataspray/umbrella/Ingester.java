@@ -23,23 +23,26 @@
 package io.dataspray.umbrella;
 
 import com.google.common.base.Strings;
+import io.dataspray.runner.DynamoProvider;
 import io.dataspray.runner.dto.web.HttpResponse;
 import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 import io.dataspray.runner.dto.web.HttpResponseException;
-import io.dataspray.umbrella.autogen.*;
-import io.dataspray.umbrella.store.HealthStore;
-import io.dataspray.umbrella.store.OrganizationStore;
-import io.dataspray.umbrella.store.OrganizationStore.Organization;
+import io.dataspray.umbrella.stream.common.store.HealthStore;
+import io.dataspray.umbrella.stream.common.store.OrganizationStore;
+import io.dataspray.umbrella.stream.common.store.OrganizationStore.Organization;
+import io.dataspray.umbrella.stream.common.store.impl.HealthStoreImpl;
+import io.dataspray.umbrella.stream.common.store.impl.OrganizationStoreImpl;
 
 import java.util.Optional;
 
 public class Ingester implements Processor {
 
-    OrganizationStore organizationStore;
-    HealthStore healthStore;
-
-    public Ingester() {
-    }
+    OrganizationStore organizationStore = new OrganizationStoreImpl(
+            SingleTableProvider.get(),
+            DynamoProvider.get());
+    HealthStore healthStore = new HealthStoreImpl(
+            SingleTableProvider.get(),
+            DynamoProvider.get());
 
     public HttpResponse webNodePing(
             PingRequest pingRequest,
@@ -53,7 +56,7 @@ public class Ingester implements Processor {
 
         return responseBuilder.ok(PingResponse.builder()
                 .withConfig(Config.builder()
-                        .withMode(organization.getMode())
+                        .withMode(Config.Mode.fromValue(organization.getMode().name()))
                         .build()).build()).build();
     }
 
@@ -66,7 +69,10 @@ public class Ingester implements Processor {
         Organization organization = authorize(authorizationHeader, responseBuilder);
 
         coordinator.sendToHttpEvents("", httpEventRequest);
-        // TODO
+
+        organization.getRules().forEach(rule -> {
+            // TODO
+        });
 
         return responseBuilder.ok(HttpEventResponse.builder()
                 .withAction(Action.builder()
