@@ -60,6 +60,7 @@ class UmbrellaServiceTest {
     void testInitShutdown() throws Exception {
         mockPingServerEndpoint(OperationMode.BLOCKING, 3000L);
         umbrellaService.init(
+                "org_name",
                 "api_key",
                 Collections.singletonList("nodeIdentifier"),
                 Optional.of(mockWebServer.url("/").toString()));
@@ -75,6 +76,7 @@ class UmbrellaServiceTest {
     void testHttpEventBlock() throws Exception {
         mockPingServerEndpoint(OperationMode.BLOCKING, 3000L);
         umbrellaService.init(
+                "org_name",
                 "api_key",
                 Collections.singletonList("nodeIdentifier"),
                 Optional.of(mockWebServer.url("/").toString()));
@@ -93,6 +95,7 @@ class UmbrellaServiceTest {
     void testHttpEventBlockTimeout() throws Exception {
         mockPingServerEndpoint(OperationMode.BLOCKING, 200L);
         umbrellaService.init(
+                "org_name",
                 "api_key",
                 Collections.singletonList("nodeIdentifier"),
                 Optional.of(mockWebServer.url("/").toString()));
@@ -110,6 +113,7 @@ class UmbrellaServiceTest {
     void testHttpEventMonitor() throws Exception {
         mockPingServerEndpoint(OperationMode.MONITOR, 1L);
         umbrellaService.init(
+                "org_name",
                 "api_key",
                 Collections.singletonList("nodeIdentifier"),
                 Optional.of(mockWebServer.url("/").toString()));
@@ -129,6 +133,7 @@ class UmbrellaServiceTest {
     void testHttpEventDisabled() throws Exception {
         mockPingServerEndpoint(OperationMode.DISABLED, 3000L);
         umbrellaService.init(
+                "org_name",
                 "api_key",
                 Collections.singletonList("nodeIdentifier"),
                 Optional.of(mockWebServer.url("/").toString()));

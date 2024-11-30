@@ -201,9 +201,15 @@ components:
             type: string
 
 paths:
-  /node/ping:
-    get:
+  /org/{org}/node/ping:
+    post:
       operationId: nodePing
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -230,9 +236,15 @@ paths:
                   config:
                     $ref: '#/components/schemas/Config'
 
-  /event/http:
+  /org/{org}/event/http:
     post:
       operationId: httpEvent
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:

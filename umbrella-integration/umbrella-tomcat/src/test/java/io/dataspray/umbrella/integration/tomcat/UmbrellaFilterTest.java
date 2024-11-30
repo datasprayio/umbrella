@@ -57,23 +57,32 @@ class UmbrellaFilterTest {
     @Test
     void testInitNoApiKey() throws Exception {
         assertThrows(ServletException.class, () -> {
-            init(null, null, null);
+            init("org1", null, null, null);
         });
-        verify(umbrellaService, times(0)).init(any(), any(), any());
+        verify(umbrellaService, times(0)).init(any(), any(), any(), any());
+    }
+
+    @Test
+    void testInitNoOrg() throws Exception {
+        assertThrows(ServletException.class, () -> {
+            init(null, "apiKey", null, null);
+        });
+        verify(umbrellaService, times(0)).init(any(), any(), any(), any());
     }
 
     @Test
     void testInitDisabled() throws Exception {
-        init("apikey", "false", null);
+        init("org1", "apikey", "false", null);
         assertFalse(umbrellaFilter.enabled);
-        verify(umbrellaService, times(0)).init(any(), any(), any());
+        verify(umbrellaService, times(0)).init(any(), any(), any(), any());
     }
 
     @Test
     void testInitSuccess() throws Exception {
-        init("apikey", "true", null);
+        init("org1", "apikey", "true", null);
         assertTrue(umbrellaFilter.enabled);
         verify(umbrellaService, times(1)).init(
+                eq("org1"),
                 eq("apikey"),
                 eq(Arrays.asList(InetAddress.getLocalHost().getHostName(), "ServletContextName", "ServerInfo", "VirtualServerName")),
                 eq(Optional.empty()));
@@ -81,15 +90,17 @@ class UmbrellaFilterTest {
 
     @Test
     void testInitCustomEndpoint() throws Exception {
-        init("apikey", null, "https://example.com");
+        init("org1", "apikey", null, "https://example.com");
         assertTrue(umbrellaFilter.enabled);
         verify(umbrellaService, times(1)).init(
+                eq("org1"),
                 eq("apikey"),
                 eq(Arrays.asList(InetAddress.getLocalHost().getHostName(), "ServletContextName", "ServerInfo", "VirtualServerName")),
                 eq(Optional.of("https://example.com")));
     }
 
     private void init(
+            @Nullable String orgName,
             @Nullable String apiKey,
             @Nullable String enabled,
             @Nullable String endpointUrl
@@ -101,6 +112,7 @@ class UmbrellaFilterTest {
 
         FilterConfig filterConfig = mock(FilterConfig.class);
         when(filterConfig.getServletContext()).thenReturn(servletContext);
+        when(filterConfig.getInitParameter("org")).thenReturn(orgName);
         when(filterConfig.getInitParameter("apiKey")).thenReturn(apiKey);
         when(filterConfig.getInitParameter("enabled")).thenReturn(enabled);
         when(filterConfig.getInitParameter("endpointUrl")).thenReturn(endpointUrl);

@@ -1,6 +1,7 @@
 ---
 $schema: "https://dataspray.io/project/schema.json"
 version: V0.0.0
+name: umbrella
 namespace: io.dataspray.umbrella
 dataFormats:
   - serde: JSON
@@ -38,7 +39,9 @@ javaProcessors:
         - name: "nodePing"
           contentTypes: [ "application/json" ]
           method: 'POST'
-          path: "/node/ping"
+          path: "/org/{org}/node/ping"
+          pathParams:
+            - name: org
           headers:
             - name: "Authorization"
               isRequired: true
@@ -47,7 +50,9 @@ javaProcessors:
         - name: "httpEvent"
           contentTypes: [ "application/json" ]
           method: 'POST'
-          path: "/event/http"
+          path: "/org/{org}/event/http"
+          pathParams:
+            - name: org
           headers:
             - name: "Authorization"
               isRequired: true
@@ -63,7 +68,9 @@ javaProcessors:
         - name: "ruleList"
           contentTypes: [ "application/json" ]
           method: 'GET'
-          path: "/rules"
+          path: "/org/{org}/rules"
+          pathParams:
+            - name: org
           headers:
             - name: "Authorization"
               isRequired: true
@@ -71,9 +78,10 @@ javaProcessors:
         - name: "ruleSet"
           contentTypes: [ "application/json" ]
           method: 'PUT'
-          path: "/rule/{priority}"
+          path: "/org/{org}/rule/{id}"
           pathParams:
-            - name: priority
+            - name: org
+            - name: id
           headers:
             - name: "Authorization"
               isRequired: true
@@ -81,8 +89,10 @@ javaProcessors:
         - name: "ruleDelete"
           contentTypes: [ "application/json" ]
           method: 'DELETE'
-          path: "/rule/{priority}"
+          path: "/org/{org}/rule/{id}"
+          pathParams:
+            - name: org
+            - name: id
           headers:
             - name: "Authorization"
               isRequired: true
-name: "umbrella"

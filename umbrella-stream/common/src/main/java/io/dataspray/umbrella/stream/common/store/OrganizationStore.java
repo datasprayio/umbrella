@@ -22,47 +22,101 @@
 
 package io.dataspray.umbrella.stream.common.store;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.dataspray.singletable.DynamoTable;
 import lombok.*;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 
+import java.time.Instant;
 import java.util.Optional;
 
-import static io.dataspray.singletable.TableType.Gsi;
 import static io.dataspray.singletable.TableType.Primary;
 
 public interface OrganizationStore {
 
-    Optional<Organization> getByApiKey(String apiKey);
+    Mode DEFAULT_MODE = Mode.MONITOR;
+    long DEFAULT_AWAIT_TIMEOUT_MS = 2_000;
+
+    Organization create(String orgName);
+
+    Optional<Organization> get(String orgName);
+
+    Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, String eventType);
+
+    Organization setMode(String orgName, Mode mode);
+
+    Organization setAwaitTimeoutMs(String orgName, long timeoutMs);
+
+    Organization setCollectAdditionalHeaders(String orgName, ImmutableSet<String> collectAdditionalHeaders);
+
+    Organization setKeyMapperSource(String orgName, Optional<String> keyMapperSource);
+
+    Organization setEndpointMapperSource(String orgName, Optional<String> endpointMapperSource);
+
+    Organization createApiKey(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes);
+
+    Organization removeApiKey(String orgName, String apiKeyName);
+
+    Organization setApiKeyEnabled(String orgName, String apiKeyName, boolean enabled);
+
+    Organization setApiKeyAllowedEventTypes(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes);
+
+    void delete(String orgName);
+
+    Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, Instant expectedLastUpdated);
+
+    Organization setRuleEnabled(String orgName, String ruleName, boolean enabled) throws ConditionalCheckFailedException;
 
     @Value
     @AllArgsConstructor
     @EqualsAndHashCode
     @Builder(toBuilder = true)
-    @DynamoTable(type = Primary, partitionKeys = "organizationName", rangePrefix = "organization")
-    @DynamoTable(type = Gsi, indexNumber = 1, partitionKeys = "apiKey", rangePrefix = "organizationByApiKey")
+    @DynamoTable(type = Primary, partitionKeys = "orgName", rangePrefix = "org")
     class Organization {
 
         @NonNull
-        @ToString.Exclude
-        String apiKey;
+        String orgName;
 
         @NonNull
-        String organizationName;
+        ImmutableMap<String, ApiKey> apiKeysByName;
 
+        @NonNull
+        ImmutableMap<String, Rule> rulesByName;
+
+        @NonNull
+        Instant rulesLastUpdated;
+
+        @NonNull
         Mode mode;
 
-        Long timeoutMs;
-
-        ImmutableSet<String> collectAdditionalHeaders;
-
-        String keyMapper;
-
-        String endpointMapper;
+        @NonNull
+        Long awaitTimeoutMs;
 
         @NonNull
-        ImmutableList<String> rules;
+        ImmutableSet<String> collectAdditionalHeaders;
+
+        String keyMapperSource;
+
+        String endpointMapperSource;
+    }
+
+    @Value
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    @Builder(toBuilder = true)
+    class Rule {
+
+        String description;
+
+        @NonNull
+        Integer priority;
+
+        @NonNull
+        Boolean enabled;
+
+        @NonNull
+        String source;
     }
 
     /**
@@ -72,5 +126,25 @@ public interface OrganizationStore {
         BLOCKING,
         MONITOR,
         DISABLED
+    }
+
+    @Value
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    @Builder(toBuilder = true)
+    class ApiKey {
+
+        @NonNull
+        @ToString.Exclude
+        String apiKeyValue;
+
+        @NonNull
+        Boolean enabled;
+
+        /**
+         * Access to emit specific events. If empty, has access to emit all.
+         */
+        @NonNull
+        ImmutableSet<String> allowedEventTypes;
     }
 }

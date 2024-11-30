@@ -20,29 +20,37 @@
  * SOFTWARE.
  */
 
-package io.dataspray.umbrella.integration.tomcat;
+package io.dataspray.umbrella.stream.common.store.util;
 
-import io.dataspray.umbrella.client.model.HttpAction;
-import io.dataspray.umbrella.client.model.HttpData;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.RandomStringUtils;
 
-import java.util.List;
-import java.util.Optional;
+import java.security.SecureRandom;
 
-public interface UmbrellaService {
+@Slf4j
+public class KeygenUtil {
 
-    static UmbrellaService create() {
-        return new UmbrellaServiceImpl();
+    public static final int API_KEY_LENGTH = 42;
+
+    @SneakyThrows
+    public static String generateSecureApiKey() {
+        return generateSecureApiKey(API_KEY_LENGTH);
     }
 
-    void init(
-            String orgName,
-            String apiKey,
-            List<String> nodeIdentifierParts,
-            Optional<String> endpointUrl);
+    @SneakyThrows
+    public static String generateSecureApiKey(int length) {
+        return RandomStringUtils.random(
+                length,
+                0,
+                0,
+                true,
+                true,
+                null,
+                SecureRandom.getInstanceStrong());
+    }
 
-    List<String> additionalHeadersToCollect();
-
-    HttpAction httpEvent(HttpData data);
-
-    void shutdown();
+    private KeygenUtil() {
+        // Disable ctor
+    }
 }

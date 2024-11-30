@@ -19,20 +19,29 @@ Make sure to add the uber-jar to the `lib` directory of your Tomcat installation
 Then adjust your `web.xml` to include the filter:
 
 ```xml
+
 <filter>
     <description>
         This filter intercepts HTTP requests .
     </description>
     <filter-name>UmbrellaFilter</filter-name>
     <filter-class>io.dataspray.umbrella.integration.tomcat</filter-class>
-    
+
+    <init-param>
+        <description>
+            The Organization name to use for
+            authenticating with the Umbrella API.
+        </description>
+        <param-name>org</param-name>
+        <param-value></param-value>
+    </init-param>
     <init-param>
         <description>
             The API Key to use for authenticating
             with the Umbrella API.
         </description>
         <param-name>apiKey</param-name>
-        <param-value>APIKEY</param-value>
+        <param-value></param-value>
     </init-param>
     <!--
     <init-param>

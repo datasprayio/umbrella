@@ -66,10 +66,16 @@ public class UmbrellaFilter implements Filter {
             return;
         }
 
+        // Organization key property
+        String orgName = filterConfig.getInitParameter("org");
+        if (orgName == null || orgName.isEmpty()) {
+            throw new ServletException("Umbrella Organization name property is missing");
+        }
+
         // Api key property
         String apiKey = filterConfig.getInitParameter("apiKey");
-        if (apiKey == null || apiKey.isEmpty() || "APIKEY".equals(apiKey)) {
-            throw new ServletException("Umbrella API key is missing");
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new ServletException("Umbrella API key property is missing");
         }
 
         // Endpoint URL property
@@ -78,6 +84,7 @@ public class UmbrellaFilter implements Filter {
         endpointUrlOpt.ifPresent(endpointUrl -> log.log(Level.INFO, "Umbrella using endpoint: {0}", endpointUrl));
 
         umbrellaService.init(
+                orgName,
                 apiKey,
                 getServerIdentifierParts(filterConfig.getServletContext()),
                 endpointUrlOpt);

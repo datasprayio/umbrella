@@ -47,6 +47,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
     private static final long PING_INTERVAL_MINUTES = 10L;
     static final HttpAction DEFAULT_ALLOW_ACTION = new HttpAction()
             .requestProcess(RequestProcess.ALLOW);
+    private String orgName;
     private DefaultApi api;
     private String nodeIdentifier;
     volatile Config config = new Config()
@@ -55,10 +56,12 @@ class UmbrellaServiceImpl implements UmbrellaService {
 
     @Override
     public void init(
+            String orgName,
             String apiKey,
             List<String> nodeIdentifierParts,
             Optional<String> endpointUrl) {
 
+        this.orgName = orgName;
         this.nodeIdentifier = constructNodeIdentifier(nodeIdentifierParts);
         this.api = initApi(apiKey, endpointUrl);
 
@@ -115,10 +118,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
             case MONITOR:
                 executor.execute(() -> {
                     try {
-                        onNewConfig(api.httpEvent(new HttpEventRequest()
-                                .data(data)
-                                .nodeId(this.nodeIdentifier)
-                                .currentMode(currentMode)));
+                        doHttpEvent(data, currentMode);
                     } catch (ApiException ex) {
                         log.log(Level.WARNING, "Failed to publish http event", ex);
                     }
@@ -137,7 +137,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
 
     private HttpEventResponse doHttpEvent(HttpData data, OperationMode currentMode) throws ApiException {
         try {
-            HttpEventResponse httpEventResponse = api.httpEvent(new HttpEventRequest()
+            HttpEventResponse httpEventResponse = api.httpEvent(orgName, new HttpEventRequest()
                     .data(data)
                     .nodeId(nodeIdentifier)
                     .currentMode(currentMode));
@@ -153,7 +153,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
     }
 
     private void doPing() throws ApiException {
-        PingResponse nodeInitializeResponse = api.nodePing(new PingRequest()
+        PingResponse nodeInitializeResponse = api.nodePing(orgName, new PingRequest()
                 .nodeId(this.nodeIdentifier));
         log.log(Level.FINEST, "Successfully pinged Umbrella");
         onNewConfig(nodeInitializeResponse.getConfig());
