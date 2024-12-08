@@ -22,35 +22,48 @@
 
 package io.dataspray.umbrella.stream.common.store;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.dataspray.singletable.DynamoTable;
 import lombok.*;
+
+import java.time.Instant;
+import java.util.Optional;
 
 import static io.dataspray.singletable.TableType.Gsi;
 import static io.dataspray.singletable.TableType.Primary;
 
 public interface HealthStore {
 
-    void ping(String organization, String nodeId);
+    PingResult ping(String organizationName, String nodeId);
 
-    ImmutableList<Node> listForOrg(String organization);
+    ImmutableSet<NodeHealth> listForOrg(String organizationName);
 
-    ImmutableList<Node> listAll();
+    ImmutableSet<NodeHealth> listAll();
+
+    @Value
+    class PingResult {
+        Optional<NodeHealth> previous;
+        NodeHealth current;
+    }
 
     @Value
     @AllArgsConstructor
     @EqualsAndHashCode
     @Builder(toBuilder = true)
-    @DynamoTable(type = Primary, partitionKeys = "organizationName", rangePrefix = "organization")
-    @DynamoTable(type = Gsi, indexNumber = 1, shardKeys = "organizationName", shardCount = 12, rangePrefix = "organizationSharded", rangeKeys = "organizationName")
-    class Node {
+    /* Shard count can be increased */
+    @DynamoTable(type = Primary, partitionKeys = "organizationName", shardKeys = "organizationName", shardCount = 1, rangePrefix = "organization", rangeKeys = "id")
+    /* Shard count can be increased */
+    @DynamoTable(type = Gsi, indexNumber = 1, shardKeys = "organizationName", shardCount = 4, rangePrefix = "organizationSharded", rangeKeys = "organizationName")
+    class NodeHealth {
 
         @NonNull
         String organizationName;
 
         @NonNull
         String id;
+
+        @NonNull
+        Instant lastPing;
 
         @NonNull
         Long ttlInEpochSec;

@@ -37,7 +37,8 @@
     <name>Umbrella Stream Common</name>
 
     <properties>
-        <sqlite4java>1.0.392</sqlite4java>
+        <sqlite4java.version>1.0.392</sqlite4java.version>
+        <idml.version>2.1.0</idml.version>
     </properties>
 
     <dependencies>
@@ -60,19 +61,33 @@
         <dependency>
             <groupId>io.idml</groupId>
             <artifactId>idml-core_2.13</artifactId>
-            <version>2.1.0</version>
+            <version>${idml.version}</version>
         </dependency>
         <dependency>
             <groupId>io.idml</groupId>
             <artifactId>idml-jackson_2.13</artifactId>
-            <version>2.1.0</version>
+            <version>${idml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.idml</groupId>
+            <artifactId>idml-utils_2.13</artifactId>
+            <version>${idml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.idml</groupId>
+            <artifactId>idml-hashing_2.13</artifactId>
+            <version>${idml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.idml</groupId>
+            <artifactId>idml-geo_2.13</artifactId>
+            <version>${idml.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.dataspray</groupId>
             <artifactId>single-table</artifactId>
-            <version>2.3.5</version>
-            <scope>provided</scope>
+            <version>2.4.0</version>
         </dependency>
 
         <!-- Logging -->
@@ -104,54 +119,54 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>DynamoDBLocal</artifactId>
-            <version>2.5.3</version>
+            <version>2.2.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
             <artifactId>sqlite4java</artifactId>
-            <version>${sqlite4java}</version>
+            <version>${sqlite4java.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
             <artifactId>sqlite4java-win32-x86</artifactId>
-            <version>${sqlite4java}</version>
+            <version>${sqlite4java.version}</version>
             <type>dll</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
             <artifactId>sqlite4java-win32-x64</artifactId>
-            <version>${sqlite4java}</version>
+            <version>${sqlite4java.version}</version>
             <type>dll</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
             <artifactId>libsqlite4java-osx</artifactId>
-            <version>${sqlite4java}</version>
+            <version>${sqlite4java.version}</version>
             <type>dylib</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
             <artifactId>libsqlite4java-linux-i386</artifactId>
-            <version>${sqlite4java}</version>
+            <version>${sqlite4java.version}</version>
             <type>so</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.almworks.sqlite4java</groupId>
             <artifactId>libsqlite4java-linux-amd64</artifactId>
-            <version>${sqlite4java}</version>
+            <version>${sqlite4java.version}</version>
             <type>so</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.github.ganadist.sqlite4java</groupId>
             <artifactId>libsqlite4java-osx-aarch64</artifactId>
-            <version>${sqlite4java}</version>
+            <version>${sqlite4java.version}</version>
             <type>dylib</type>
             <scope>test</scope>
         </dependency>

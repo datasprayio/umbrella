@@ -16,6 +16,44 @@ components:
       in: header
       name: Authorization
   schemas:
+    PingRequest:
+      title: PingRequest
+      type: object
+      required:
+        - nodeId
+      properties:
+        nodeId:
+          $ref: '#/components/schemas/NodeIdentification'
+    PingResponse:
+      title: PingResponse
+      type: object
+      required:
+        - config
+      properties:
+        config:
+          $ref: '#/components/schemas/Config'
+    HttpEventRequest:
+      title: HttpEventRequest
+      type: object
+      required:
+        - nodeId
+      properties:
+        nodeId:
+          $ref: '#/components/schemas/NodeIdentification'
+        currentMode:
+          $ref: '#/components/schemas/OperationMode'
+        data:
+          $ref: '#/components/schemas/HttpData'
+    HttpEventResponse:
+      title: HttpEventResponse
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          $ref: '#/components/schemas/HttpAction'
+        configRefresh:
+          $ref: '#/components/schemas/Config'
     Headers:
       type: object
       additionalProperties:
@@ -215,27 +253,14 @@ paths:
         content:
           application/json:
             schema:
-              title: PingRequest
-              type: object
-              required:
-                - nodeId
-              properties:
-                nodeId:
-                  $ref: '#/components/schemas/NodeIdentification'
+              $ref: '#/components/schemas/PingRequest'
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                title: PingResponse
-                type: object
-                required:
-                  - config
-                properties:
-                  config:
-                    $ref: '#/components/schemas/Config'
-
+                $ref: '#/components/schemas/PingResponse'
   /org/{org}/event/http:
     post:
       operationId: httpEvent
@@ -250,29 +275,11 @@ paths:
         content:
           application/json:
             schema:
-              title: HttpEventRequest
-              type: object
-              required:
-                - nodeId
-              properties:
-                nodeId:
-                  $ref: '#/components/schemas/NodeIdentification'
-                currentMode:
-                  $ref: '#/components/schemas/OperationMode'
-                data:
-                  $ref: '#/components/schemas/HttpData'
+              $ref: '#/components/schemas/HttpEventRequest'
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                title: HttpEventResponse
-                type: object
-                required:
-                  - action
-                properties:
-                  action:
-                    $ref: '#/components/schemas/HttpAction'
-                  configRefresh:
-                    $ref: '#/components/schemas/Config'
+                $ref: '#/components/schemas/HttpEventResponse'

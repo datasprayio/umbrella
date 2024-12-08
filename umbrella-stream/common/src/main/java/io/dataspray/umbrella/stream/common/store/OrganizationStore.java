@@ -40,9 +40,13 @@ public interface OrganizationStore {
 
     Organization create(String orgName);
 
-    Optional<Organization> get(String orgName);
+    Optional<Organization> get(String orgName, boolean useCache);
+
+    Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue);
 
     Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, String eventType);
+
+    Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, Optional<String> eventType);
 
     Organization setMode(String orgName, Mode mode);
 
@@ -63,6 +67,8 @@ public interface OrganizationStore {
     Organization setApiKeyAllowedEventTypes(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes);
 
     void delete(String orgName);
+
+    Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName);
 
     Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, Instant expectedLastUpdated);
 

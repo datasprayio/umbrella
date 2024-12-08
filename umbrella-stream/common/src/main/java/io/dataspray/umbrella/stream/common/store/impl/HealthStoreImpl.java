@@ -22,30 +22,69 @@
 
 package io.dataspray.umbrella.stream.common.store.impl;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import io.dataspray.singletable.ShardedIndexSchema;
+import io.dataspray.singletable.ShardedTableSchema;
 import io.dataspray.singletable.SingleTable;
 import io.dataspray.umbrella.stream.common.store.HealthStore;
-import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-@RequiredArgsConstructor
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class HealthStoreImpl implements HealthStore {
 
-    private final SingleTable singleTable;
+    private static final Duration PING_TTL = Duration.ofDays(1);
     private final DynamoDbClient dynamo;
+    private final ShardedTableSchema<NodeHealth> schemaHealthByOrg;
+    private final ShardedIndexSchema<NodeHealth> schemaHealthAll;
 
-    @Override
-    public void ping(String organization, String nodeId) {
-        throw new UnsupportedOperationException();
+    public HealthStoreImpl(SingleTable singleTable, DynamoDbClient dynamo) {
+        this.dynamo = checkNotNull(dynamo);
+
+        this.schemaHealthByOrg = singleTable.parseShardedTableSchema(NodeHealth.class);
+        this.schemaHealthAll = singleTable.parseShardedGlobalSecondaryIndexSchema(1, NodeHealth.class);
     }
 
     @Override
-    public ImmutableList<Node> listForOrg(String organization) {
-        throw new UnsupportedOperationException();
+    public PingResult ping(String organizationName, String nodeId) {
+        NodeHealth current = new NodeHealth(organizationName, nodeId, Instant.now(),
+                Instant.now().plus(PING_TTL).getEpochSecond());
+        Optional<NodeHealth> previous = schemaHealthByOrg.put()
+                .item(current)
+                .executeGetPrevious(dynamo);
+        return new PingResult(previous, current);
     }
 
     @Override
-    public ImmutableList<Node> listAll() {
-        throw new UnsupportedOperationException();
+    public ImmutableSet<NodeHealth> listForOrg(String organizationName) {
+        return deduplicateShardedStream(schemaHealthByOrg.querySharded()
+                .keyConditionValues(ImmutableMap.of("organizationName", organizationName))
+                .executeStream(dynamo));
+    }
+
+    @Override
+    public ImmutableSet<NodeHealth> listAll() {
+        return deduplicateShardedStream(schemaHealthAll.querySharded().executeStream(dynamo));
+    }
+
+    /**
+     * Ensure a change in number of shards removes duplicates.
+     * E.g. When shardCount=2, item A has shard=0, but when shardCount=20, item A has shard=14 so a duplicate is present
+     */
+    private ImmutableSet<NodeHealth> deduplicateShardedStream(Stream<NodeHealth> healths) {
+        return ImmutableSet.copyOf(healths
+                .collect(ImmutableMap.toImmutableMap(
+                        NodeHealth::getId,
+                        Function.identity(),
+                        (left, right) -> left.getLastPing().isAfter(right.getLastPing()) ? left : right
+                ))
+                .values());
     }
 }

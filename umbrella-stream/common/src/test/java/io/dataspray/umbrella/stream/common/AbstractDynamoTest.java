@@ -51,8 +51,8 @@ public class AbstractDynamoTest {
                 .build();
         singleTable.createTableIfNotExists(
                 dynamo,
-                1,
-                0);
+                0,
+                1);
     }
 
     @AfterAll

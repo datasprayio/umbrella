@@ -40,7 +40,7 @@ const outDir = process.argv[3];
     // Resolve references within yaml file
     const openApiDocDereferenced = await $RefParser.dereference(openApiDoc, {
         dereference: {
-            circular: true // Handle circular references if they exist
+            circular: false // Handle circular references if they exist
         }
     });
 
@@ -49,23 +49,21 @@ const outDir = process.argv[3];
 
     // Iterate over all endpoints and extract requests and responses
     const schemas = {}
-    for (const pathItem of Object.values(openApiDocDereferenced.paths)) {
-        for (const operation of Object.values(pathItem)) {
-            if (operation.requestBody) {
-                for (const content of Object.values(operation.requestBody.content)) {
+    for (const [path, pathItem] of Object.entries(openApiDocDereferenced.paths)) {
+        for (const [operation, operationItem] of Object.entries(pathItem)) {
+            if (operationItem.requestBody) {
+                for (const content of Object.values(operationItem.requestBody.content)) {
                     const schema = content.schema;
-                    if (schema.title) {
-                        schemas[schema.title] = schema
-                    }
+                    if (!schema.title) throw Error(`Schema requires a title under ${path} ${operation} requestBody`)
+                    schemas[schema.title] = schema
                 }
             }
-            if (operation.responses) {
-                for (const response of Object.values(operation.responses)) {
-                    for (const content of Object.values(response.content || {})) {
+            if (operationItem.responses) {
+                for (const [response, responseItem] of Object.entries(operationItem.responses)) {
+                    for (const content of Object.values(responseItem.content || {})) {
                         const schema = content.schema;
-                        if (schema.title) {
-                            schemas[schema.title] = schema
-                        }
+                        if (!schema.title) throw Error(`Schema requires a title under ${path} ${operation} responses ${response}`)
+                        schemas[schema.title] = schema
                     }
                 }
             }

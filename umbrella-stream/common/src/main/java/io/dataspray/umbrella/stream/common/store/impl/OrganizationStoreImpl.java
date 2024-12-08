@@ -22,6 +22,8 @@
 
 package io.dataspray.umbrella.stream.common.store.impl;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -33,6 +35,8 @@ import io.dataspray.umbrella.stream.common.store.util.KeygenUtil;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+import javax.annotation.Nullable;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -42,8 +46,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class OrganizationStoreImpl implements OrganizationStore {
 
+    private static final Duration ORG_CACHE_TTL = Duration.ofMinutes(5);
     private final DynamoDbClient dynamo;
     private final TableSchema<Organization> schemaOrganization;
+    private final Cache<String, Optional<Organization>> orgCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(ORG_CACHE_TTL)
+            .build();
 
     public OrganizationStoreImpl(SingleTable singleTable, DynamoDbClient dynamo) {
         this.dynamo = checkNotNull(dynamo);
@@ -71,40 +79,63 @@ public class OrganizationStoreImpl implements OrganizationStore {
     }
 
     @Override
-    public Optional<Organization> get(String orgName) {
-        return schemaOrganization.get()
+    public Optional<Organization> get(String orgName, boolean useCache) {
+        if (useCache) {
+            Optional<Organization> orgOpt = orgCache.getIfPresent(orgName);
+            if (orgOpt != null) {
+                return orgOpt;
+            }
+        }
+        Optional<Organization> orgOpt = schemaOrganization.get()
                 .key(ImmutableMap.of("orgName", orgName))
                 .executeGet(dynamo);
+        orgCache.put(orgName, orgOpt);
+        return orgOpt;
+    }
+
+    @Override
+    public Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue) {
+        return getIfAuthorized(orgName, apiKeyValue, Optional.empty());
     }
 
     @Override
     public Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, String eventType) {
-        return get(orgName).filter(org -> org.getApiKeysByName().values().stream()
+        return getIfAuthorized(orgName, apiKeyValue, Optional.of(eventType));
+    }
+
+    @Override
+    public Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, Optional<String> eventTypeOpt) {
+        return get(orgName, true).filter(org -> org.getApiKeysByName().values().stream()
                 .anyMatch(apiKey ->
                         Boolean.TRUE.equals(apiKey.getEnabled())
                                 && apiKey.getApiKeyValue().equals(apiKeyValue)
-                                && (apiKey.getAllowedEventTypes().isEmpty()
-                                || apiKey.getAllowedEventTypes().contains(eventType))));
+                                && (!eventTypeOpt.isPresent()
+                                || apiKey.getAllowedEventTypes().isEmpty()
+                                || apiKey.getAllowedEventTypes().contains(eventTypeOpt.get()))));
     }
 
     @Override
     public Organization setMode(String orgName, Mode mode) {
         log.info("Changing mode to {} for {}", mode, orgName);
-        return schemaOrganization.update()
+        Organization org = schemaOrganization.update()
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .set("mode", mode)
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
     public Organization setAwaitTimeoutMs(String orgName, long timeoutMs) {
         log.info("Changing await timeout to {} for {}", timeoutMs, orgName);
-        return schemaOrganization.update()
+        Organization org = schemaOrganization.update()
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .set("awaitTimeoutMs", timeoutMs)
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
@@ -116,10 +147,12 @@ public class OrganizationStoreImpl implements OrganizationStore {
         } else {
             updateBuilder.set("collectAdditionalHeaders", collectAdditionalHeaders);
         }
-        return updateBuilder
+        Organization org = updateBuilder
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
@@ -131,10 +164,12 @@ public class OrganizationStoreImpl implements OrganizationStore {
         } else {
             updateBuilder.remove("keyMapperSource");
         }
-        return updateBuilder
+        Organization org = updateBuilder
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
@@ -146,10 +181,12 @@ public class OrganizationStoreImpl implements OrganizationStore {
         } else {
             updateBuilder.remove("endpointMapperSource");
         }
-        return updateBuilder
+        Organization org = updateBuilder
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
@@ -158,7 +195,7 @@ public class OrganizationStoreImpl implements OrganizationStore {
         checkArgument(!apiKeyName.isEmpty(), "apiKeyName cannot be empty");
         apiKeyName = apiKeyName.replace("[^a-zA-Z]", "_");
         UpdateBuilder<Organization> updateBuilder = schemaOrganization.update();
-        return updateBuilder
+        Organization org = updateBuilder
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .set(ImmutableList.of("apiKeysByName", apiKeyName),
@@ -167,17 +204,21 @@ public class OrganizationStoreImpl implements OrganizationStore {
                                 true,
                                 ImmutableSet.of()))
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
     public Organization removeApiKey(String orgName, String apiKeyName) {
         log.info("Removing api key {} for {}", apiKeyName, orgName);
         UpdateBuilder<Organization> updateBuilder = schemaOrganization.update();
-        return updateBuilder
+        Organization org = updateBuilder
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .remove(ImmutableList.of("apiKeysByName", apiKeyName))
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
@@ -193,7 +234,7 @@ public class OrganizationStoreImpl implements OrganizationStore {
     }
 
     private Organization updateApiKey(String orgName, String apiKeyName, Optional<Boolean> booleanOpt, Optional<ImmutableSet<String>> allowedEventTypesOpt) {
-        Optional<Organization> organizationOpt = get(orgName);
+        Optional<Organization> organizationOpt = get(orgName, false);
         if (!organizationOpt.isPresent()) {
             throw new IllegalArgumentException("Cannot update api key " + apiKeyName + " for org " + orgName + " as the org does not exist");
         }
@@ -205,11 +246,13 @@ public class OrganizationStoreImpl implements OrganizationStore {
                 .toBuilder();
         booleanOpt.ifPresent(apiKeyBuilder::enabled);
         allowedEventTypesOpt.ifPresent(apiKeyBuilder::allowedEventTypes);
-        return schemaOrganization.update()
+        Organization org = schemaOrganization.update()
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .set(ImmutableList.of("apiKeysByName", apiKeyName), apiKeyBuilder.build())
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
@@ -217,10 +260,16 @@ public class OrganizationStoreImpl implements OrganizationStore {
         schemaOrganization.delete()
                 .key(ImmutableMap.of("orgName", orgName))
                 .execute(dynamo);
+        orgCache.put(orgName, Optional.empty());
     }
 
     @Override
-    public Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, Instant expectedLastUpdated) {
+    public Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName) {
+        return setRules(orgName, rulesByName, null);
+    }
+
+    @Override
+    public Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, @Nullable Instant expectedLastUpdated) {
         log.info("Changing rules for {}", orgName);
         UpdateBuilder<Organization> updateBuilder = schemaOrganization.update();
         if (rulesByName.isEmpty()) {
@@ -228,18 +277,22 @@ public class OrganizationStoreImpl implements OrganizationStore {
         } else {
             updateBuilder.set("rulesByName", rulesByName);
         }
-        return updateBuilder
+        if (expectedLastUpdated != null) {
+            updateBuilder.conditionFieldEquals("rulesLastUpdated", expectedLastUpdated);
+        }
+        Organization org = updateBuilder
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
-                .conditionFieldEquals("rulesLastUpdated", expectedLastUpdated)
                 .set("rulesLastUpdated", Instant.now())
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 
     @Override
     public Organization setRuleEnabled(String orgName, String ruleName, boolean enabled) {
         log.info("{} rule {} org {}", enabled ? "Enabling" : "Disabling", ruleName, orgName);
-        Optional<Organization> organizationOpt = get(orgName);
+        Optional<Organization> organizationOpt = get(orgName, false);
         if (!organizationOpt.isPresent()) {
             throw new IllegalArgumentException("Cannot update api key " + ruleName + " for org " + orgName + " as the org does not exist");
         }
@@ -249,11 +302,13 @@ public class OrganizationStoreImpl implements OrganizationStore {
             return organization;
         }
         Rule updatedRule = rule.toBuilder().enabled(enabled).build();
-        return schemaOrganization.update()
+        Organization org = schemaOrganization.update()
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .set(ImmutableList.of("rulesByName", ruleName), updatedRule)
                 .set("rulesLastUpdated", Instant.now())
                 .executeGetUpdated(dynamo);
+        orgCache.put(orgName, Optional.of(org));
+        return org;
     }
 }
