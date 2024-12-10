@@ -40,12 +40,6 @@
     <name>Umbrella Integration Parent</name>
     <url>https://dataspray.io</url>
 
-    <properties>
-        <java.version>11</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-    </properties>
-
     <modules>
         <module>umbrella-tomcat</module>
     </modules>
