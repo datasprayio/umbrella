@@ -96,7 +96,6 @@
                         <descriptor>${project.basedir}/src/main/assembly/assembly-api.xml</descriptor>
                         <descriptor>${project.basedir}/src/main/assembly/assembly-json-schema.xml</descriptor>
                     </descriptors>
-                    <tarLongFileMode>posix</tarLongFileMode>
                 </configuration>
                 <executions>
                     <execution>
