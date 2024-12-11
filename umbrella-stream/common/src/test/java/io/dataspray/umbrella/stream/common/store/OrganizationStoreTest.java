@@ -37,6 +37,7 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
 import java.time.Instant;
 import java.util.Optional;
 
+import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_EVENT_TYPE;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
@@ -160,12 +161,14 @@ class OrganizationStoreTest extends AbstractDynamoTest {
                                 .priority(42)
                                 .enabled(true)
                                 .source("rule 1 source")
+                                .eventTypes(ImmutableSet.of(WEB_EVENT_TYPE, "custom"))
                                 .build(),
                         "my rule 2", Rule.builder()
                                 .description("description 2")
                                 .priority(43)
                                 .enabled(true)
                                 .source("rule 2 source")
+                                .eventTypes(ImmutableSet.of("custom"))
                                 .build()),
                 org.getRulesLastUpdated());
         assertTrue(org.getRulesLastUpdated().isAfter(lastUpdatedAtCreation));

@@ -157,6 +157,8 @@
                         </goals>
                         <phase>generate-sources</phase>
                         <configuration>
+                            <!-- Disables spec validation, for "existingJavaType" -->
+                            <skipValidateSpec>true</skipValidateSpec>
                             <inputSpec>${project.build.directory}/unpacked-resources/openapi/umbrella-api.yaml
                             </inputSpec>
                             <generatorName>java</generatorName>

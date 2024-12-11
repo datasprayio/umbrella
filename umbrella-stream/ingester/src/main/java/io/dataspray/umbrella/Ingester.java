@@ -27,6 +27,7 @@ import io.dataspray.runner.DynamoProvider;
 import io.dataspray.runner.dto.web.HttpResponse;
 import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 import io.dataspray.runner.dto.web.HttpResponseException;
+import io.dataspray.umbrella.HttpEventRequest.OperationMode;
 import io.dataspray.umbrella.stream.common.store.HealthStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.Organization;
@@ -37,7 +38,7 @@ import java.util.Optional;
 
 public class Ingester implements Processor {
 
-    private static final String WEB_HTTP_EVENT_TYPE = "http";
+    public static final String WEB_HTTP_EVENT_TYPE = "http";
 
     OrganizationStore organizationStore = new OrganizationStoreImpl(
             SingleTableProvider.get(),
@@ -45,7 +46,7 @@ public class Ingester implements Processor {
     HealthStore healthStore = new HealthStoreImpl(
             SingleTableProvider.get(),
             DynamoProvider.get());
-    RuleRunner ruleRunner = new RuleRunner();
+    RuleRunner ruleRunner = new RuleRunnerImpl();
 
     public HttpResponse webNodePing(
             PingRequest pingRequest,
@@ -60,7 +61,7 @@ public class Ingester implements Processor {
 
         return responseBuilder.ok(PingResponse.builder()
                         .withConfig(Config.builder()
-                                .withMode(Config.Mode.fromValue(organization.getMode().name()))
+                                .withMode(OperationMode.fromValue(organization.getMode().name()))
                                 .build())
                         .build())
                 .build();
@@ -75,15 +76,43 @@ public class Ingester implements Processor {
     ) {
         Organization organization = authorize(orgName, authorizationHeader, Optional.of(WEB_HTTP_EVENT_TYPE), responseBuilder);
 
-        coordinator.sendToHttpEvents("", httpEventRequest);
+        Action action = ruleRunner.run(organization, WEB_HTTP_EVENT_TYPE, httpEventRequest);
+        HttpEventResponse httpEventResponse = HttpEventResponse.builder()
+                .withAction(action)
+                // TODO only send if config is changed, need to receive last updated time from client
+                .withConfigRefresh(Config.builder()
+                        .withMode(OperationMode.fromValue(organization.getMode().name()))
+                        .build())
+                .build();
 
-        Action action = ruleRunner.run(organization, httpEventRequest);
+        coordinator.sendToHttpEvents("", new HttpEvent(httpEventRequest, httpEventResponse));
+
+        return responseBuilder.ok(httpEventResponse).build();
+    }
+
+    @Override
+    public HttpResponse webEvent(
+            EventRequest eventRequest,
+            String orgName,
+            String eventTypePath,
+            String authorizationHeader,
+            HttpResponseBuilder<EventResponse> responseBuilder,
+            WebCoordinator coordinator
+    ) {
+        Organization organization = authorize(orgName, authorizationHeader, Optional.of(WEB_HTTP_EVENT_TYPE), responseBuilder);
+
+        Action action = ruleRunner.run(organization, WEB_HTTP_EVENT_TYPE, httpEventRequest);
+
+        coordinator.sendToHttpEvents("", new HttpEvent(
+                eventRequest,
+                action
+        ));
 
         return responseBuilder.ok(HttpEventResponse.builder()
                         .withAction(action)
                         // TODO only send if config is changed, need to receive last updated time from client
-                        .withConfigRefresh(ConfigRefresh.builder()
-                                .withMode(ConfigRefresh.Mode.fromValue(organization.getMode().name()))
+                        .withConfigRefresh(Config.builder()
+                                .withMode(OperationMode.fromValue(organization.getMode().name()))
                                 .build())
                         .build())
                 .build();

@@ -23,7 +23,7 @@
 package io.dataspray.umbrella.integration.tomcat;
 
 import io.dataspray.umbrella.client.model.HttpAction;
-import io.dataspray.umbrella.client.model.HttpData;
+import io.dataspray.umbrella.client.model.HttpMetadata;
 
 import java.util.List;
 import java.util.Optional;
@@ -42,7 +42,7 @@ public interface UmbrellaService {
 
     List<String> additionalHeadersToCollect();
 
-    HttpAction httpEvent(HttpData data);
+    HttpAction httpEvent(HttpMetadata data);
 
     void shutdown();
 }

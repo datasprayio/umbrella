@@ -85,7 +85,7 @@ class UmbrellaServiceTest {
                 .requestMetadata(Collections.singletonMap("attrKey", "attrVal"));
         mockHttpEventEndpoint(actionExpected, OperationMode.MONITOR, 0L);
 
-        HttpAction actionActual = umbrellaService.httpEvent(new HttpData());
+        HttpAction actionActual = umbrellaService.httpEvent(new HttpMetadata());
 
         assertEquals(actionExpected, actionActual);
         assertEquals(OperationMode.MONITOR, umbrellaService.config.getMode());
@@ -103,7 +103,7 @@ class UmbrellaServiceTest {
                 .requestProcess(RequestProcess.BLOCK);
         mockHttpEventEndpoint(actionReturned, OperationMode.MONITOR, 300L);
 
-        HttpAction actionActual = umbrellaService.httpEvent(new HttpData());
+        HttpAction actionActual = umbrellaService.httpEvent(new HttpMetadata());
 
         assertEquals(UmbrellaServiceImpl.DEFAULT_ALLOW_ACTION, actionActual);
         assertEquals(OperationMode.BLOCKING, umbrellaService.config.getMode());
@@ -121,7 +121,7 @@ class UmbrellaServiceTest {
                 .requestProcess(RequestProcess.BLOCK);
         mockHttpEventEndpoint(actionReturned, OperationMode.BLOCKING, 100L);
 
-        HttpAction actionActual = umbrellaService.httpEvent(new HttpData());
+        HttpAction actionActual = umbrellaService.httpEvent(new HttpMetadata());
 
         assertEquals(UmbrellaServiceImpl.DEFAULT_ALLOW_ACTION, actionActual);
         assertEquals(OperationMode.MONITOR, umbrellaService.config.getMode());
@@ -139,7 +139,7 @@ class UmbrellaServiceTest {
                 Optional.of(mockWebServer.url("/").toString()));
         HttpAction actionExpected = UmbrellaServiceImpl.DEFAULT_ALLOW_ACTION;
 
-        HttpAction actionActual = umbrellaService.httpEvent(new HttpData());
+        HttpAction actionActual = umbrellaService.httpEvent(new HttpMetadata());
 
         assertEquals(actionExpected, actionActual);
         assertEquals(OperationMode.DISABLED, umbrellaService.config.getMode());

@@ -24,7 +24,7 @@ package io.dataspray.umbrella.integration.tomcat;
 
 import io.dataspray.umbrella.client.model.Cookie;
 import io.dataspray.umbrella.client.model.HttpAction;
-import io.dataspray.umbrella.client.model.HttpData;
+import io.dataspray.umbrella.client.model.HttpMetadata;
 import io.dataspray.umbrella.client.model.RequestProcess;
 import jakarta.annotation.Nullable;
 import jakarta.servlet.*;
@@ -170,7 +170,7 @@ class UmbrellaFilterTest {
 
         umbrellaFilter.doFilter(request, response, chain);
 
-        ArgumentCaptor<HttpData> dataCaptor = ArgumentCaptor.forClass(HttpData.class);
+        ArgumentCaptor<HttpMetadata> dataCaptor = ArgumentCaptor.forClass(HttpMetadata.class);
         verify(umbrellaService, times(1)).httpEvent(dataCaptor.capture());
         verify(chain, times(1)).doFilter(eq(request), eq(response));
 

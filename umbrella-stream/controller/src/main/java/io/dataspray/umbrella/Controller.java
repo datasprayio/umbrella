@@ -1,19 +1,37 @@
+/*
+ * Copyright 2024 Matus Faro
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package io.dataspray.umbrella;
 
-import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 import io.dataspray.runner.dto.web.HttpResponse;
-import io.dataspray.umbrella.Processor;
-import io.dataspray.umbrella.Rule;
-import io.dataspray.umbrella.Rules;
-import io.dataspray.umbrella.WebCoordinator;
-import jakarta.annotation.Nullable;
+import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 
 public class Controller implements Processor {
 
     public HttpResponse webRuleList(
-        String authorizationHeader,
-        HttpResponseBuilder<Rules> responseBuilder,
-        WebCoordinator coordinator
+            String orgPath,
+            String authorizationHeader,
+            HttpResponseBuilder<Rules> responseBuilder,
+            WebCoordinator coordinator
     ) {
 
         // TODO
@@ -21,11 +39,12 @@ public class Controller implements Processor {
     }
 
     public HttpResponse webRuleSet(
-        Rule rule,
-        @Nullable String priorityPath,
-        String authorizationHeader,
-        HttpResponseBuilder<Object> responseBuilder,
-        WebCoordinator coordinator
+            Rule rule,
+            String orgPath,
+            String idPath,
+            String authorizationHeader,
+            HttpResponseBuilder<Object> responseBuilder,
+            WebCoordinator coordinator
     ) {
 
         // TODO
@@ -33,9 +52,11 @@ public class Controller implements Processor {
     }
 
     public HttpResponse webRuleDelete(
-        String authorizationHeader,
-        HttpResponseBuilder<Object> responseBuilder,
-        WebCoordinator coordinator
+            String orgPath,
+            String idPath,
+            String authorizationHeader,
+            HttpResponseBuilder<Object> responseBuilder,
+            WebCoordinator coordinator
     ) {
 
         // TODO

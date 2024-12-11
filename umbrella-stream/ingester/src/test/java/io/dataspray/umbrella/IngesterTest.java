@@ -34,6 +34,7 @@ import io.dataspray.umbrella.stream.common.store.HealthStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.ApiKey;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.Organization;
+import io.dataspray.umbrella.stream.common.store.OrganizationStore.Rule;
 import io.dataspray.umbrella.stream.common.store.impl.HealthStoreImpl;
 import io.dataspray.umbrella.stream.common.store.impl.OrganizationStoreImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_EVENT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
@@ -104,11 +106,12 @@ public class IngesterTest extends AbstractTest {
         organizationStore.setRules(org.getOrgName(), Strings.isNullOrEmpty(source)
                 ? ImmutableMap.of()
                 : ImmutableMap.of(
-                "rule1", OrganizationStore.Rule.builder()
+                "rule1", Rule.builder()
                         .source(source)
                         .priority(100)
                         .description("my rule")
                         .enabled(ruleEnabled)
+                        .eventTypes(ImmutableSet.of(WEB_EVENT_TYPE))
                         .build()
         ));
 

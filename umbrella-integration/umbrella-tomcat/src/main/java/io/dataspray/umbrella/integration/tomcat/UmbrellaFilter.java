@@ -23,7 +23,7 @@
 package io.dataspray.umbrella.integration.tomcat;
 
 import io.dataspray.umbrella.client.model.HttpAction;
-import io.dataspray.umbrella.client.model.HttpData;
+import io.dataspray.umbrella.client.model.HttpMetadata;
 import io.dataspray.umbrella.client.model.RequestProcess;
 import jakarta.servlet.*;
 import jakarta.servlet.http.Cookie;
@@ -116,7 +116,7 @@ public class UmbrellaFilter implements Filter {
         HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
 
         // Prepare request
-        HttpData data = new HttpData();
+        HttpMetadata data = new HttpMetadata();
         data.setTs(Instant.now());
         data.setUri(httpServletRequest.getRequestURI());
         data.setMethod(httpServletRequest.getMethod());

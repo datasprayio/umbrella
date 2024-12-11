@@ -42,8 +42,8 @@ components:
           $ref: '#/components/schemas/NodeIdentification'
         currentMode:
           $ref: '#/components/schemas/OperationMode'
-        data:
-          $ref: '#/components/schemas/HttpData'
+        httpMetadata:
+          $ref: '#/components/schemas/HttpMetadata'
     HttpEventResponse:
       title: HttpEventResponse
       type: object
@@ -54,12 +54,44 @@ components:
           $ref: '#/components/schemas/HttpAction'
         configRefresh:
           $ref: '#/components/schemas/Config'
+    EventRequest:
+      title: EventRequest
+      type: object
+      required:
+        - nodeId
+      properties:
+        nodeId:
+          $ref: '#/components/schemas/NodeIdentification'
+        currentMode:
+          $ref: '#/components/schemas/OperationMode'
+        metadata:
+          type: object
+          existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
+          additionalProperties:
+            type: string
+    EventResponse:
+      title: EventResponse
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          $ref: '#/components/schemas/CustomAction'
+        configRefresh:
+          $ref: '#/components/schemas/Config'
+    CustomAction:
+      title: CustomAction
+      type: object
+      existingJavaType: 'com.google.common.collect.ImmutableMap<String, Object>' # For jsonschema2pojo
+      additionalProperties: true
     Headers:
       type: object
+      existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
       additionalProperties:
         type: string
     Attributes:
       type: object
+      existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
       additionalProperties:
         type: string
     Cookies:
@@ -91,6 +123,7 @@ components:
     NodeIdentification:
       type: string
     OperationMode:
+      title: OperationMode
       type: string
       enum:
         - BLOCKING
@@ -120,6 +153,7 @@ components:
       type: integer
       format: int64
     Config:
+      title: Config
       type: object
       required:
         - mode
@@ -133,7 +167,8 @@ components:
           type: array
           items:
             type: string
-    HttpData:
+    HttpMetadata:
+      title: HttpMetadata
       type: object
       properties:
         ts:
@@ -234,9 +269,7 @@ components:
           items:
             type: string
         additionalHeaders:
-          type: object
-          additionalProperties:
-            type: string
+          $ref: '#/components/schemas/Headers'
 
 paths:
   /org/{org}/node/ping:
@@ -283,3 +316,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HttpEventResponse'
+  /org/{org}/event/{eventType}:
+    post:
+      operationId: customEvent
+      parameters:
+        - name: org
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: eventType
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventResponse'

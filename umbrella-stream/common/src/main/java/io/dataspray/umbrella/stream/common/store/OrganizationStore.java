@@ -35,6 +35,8 @@ import static io.dataspray.singletable.TableType.Primary;
 
 public interface OrganizationStore {
 
+    String WEB_EVENT_TYPE = "web";
+
     Mode DEFAULT_MODE = Mode.MONITOR;
     long DEFAULT_AWAIT_TIMEOUT_MS = 2_000;
 
@@ -123,10 +125,13 @@ public interface OrganizationStore {
 
         @NonNull
         String source;
+
+        @NonNull
+        ImmutableSet<String> eventTypes;
     }
 
     /**
-     * Matches enum io.dataspray.umbrella.autogen.Config.Mode.
+     * Matches enum {@code OperationMode}.
      */
     enum Mode {
         BLOCKING,

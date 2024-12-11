@@ -23,48 +23,52 @@
 package io.dataspray.umbrella;
 
 import io.dataspray.runner.dto.web.HttpResponse;
-import io.dataspray.umbrella.Rule;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-public class ControllerTest extends AbstractDynamoTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    @Test(timeout = 10_000)
+public class ControllerTest extends AbstractTest {
+
+    @Test
     public void testWebRuleList() {
 
         TestCoordinator coordinator = TestCoordinator.createForWeb();
         HttpResponse response = processor.webRuleList(
+                "orgPath",
                 "authorizationHeader",
                 HttpResponse.builder(),
                 coordinator);
 
-        Assert.assertEquals(204, response.getStatusCode());
+        assertEquals(204, response.getStatusCode());
     }
 
-    @Test(timeout = 10_000)
+    @Test
     public void testWebRuleSet() {
 
         TestCoordinator coordinator = TestCoordinator.createForWeb();
         HttpResponse response = processor.webRuleSet(
                 Mockito.mock(Rule.class),
-                null,
+                "orgPath",
+                "idPath",
                 "authorizationHeader",
                 HttpResponse.builder(),
                 coordinator);
 
-        Assert.assertEquals(204, response.getStatusCode());
+        assertEquals(204, response.getStatusCode());
     }
 
-    @Test(timeout = 10_000)
+    @Test
     public void testWebRuleDelete() {
 
         TestCoordinator coordinator = TestCoordinator.createForWeb();
         HttpResponse response = processor.webRuleDelete(
+                "orgPath",
+                "idPath",
                 "authorizationHeader",
                 HttpResponse.builder(),
                 coordinator);
 
-        Assert.assertEquals(204, response.getStatusCode());
+        assertEquals(204, response.getStatusCode());
     }
 }

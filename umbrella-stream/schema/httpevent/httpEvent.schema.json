@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$id": "HttpEvent",
+  "title": "HttpEvent",
+  "type": "object",
+  "required": [
+    "request",
+    "response"
+  ],
+  "properties": {
+    "request": {
+      "$ref": "../httpeventrequest/httpEventRequest.schema.json"
+    },
+    "response": {
+      "$ref": "../httpeventresponse/httpEventResponse.schema.json"
+    }
+  }
+}

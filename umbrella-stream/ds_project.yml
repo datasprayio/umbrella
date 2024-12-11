@@ -5,9 +5,17 @@ name: umbrella
 namespace: io.dataspray.umbrella
 dataFormats:
   - serde: JSON
+    name: HttpEvent
+  - serde: JSON
+    name: CustomEvent
+  - serde: JSON
     name: HttpEventRequest
   - serde: JSON
     name: HttpEventResponse
+  - serde: JSON
+    name: EventRequest
+  - serde: JSON
+    name: EventResponse
   - serde: JSON
     name: PingRequest
   - serde: JSON
@@ -17,10 +25,12 @@ dataFormats:
   - serde: JSON
     name: Rule
 datasprayStores:
-  - streams:
-      - dataFormatName: "HttpEventRequest"
+  - name: "ds-store"
+    streams:
+      - dataFormatName: "HttpEvent"
         name: "http-events"
-    name: "default"
+      - dataFormatName: "CustomEvent"
+        name: "custom-events"
 dynamoState:
   lsiCount: 1
   gsiCount: 0
@@ -30,9 +40,12 @@ javaProcessors:
     hasDynamoState: true
     includeSingleTableLibrary: true
     outputStreams:
-      - storeType: DATASPRAY
-        storeName: default
+      - storeName: ds-store
+        storeType: DATASPRAY
         streamName: http-events
+      - storeName: ds-store
+        storeType: DATASPRAY
+        streamName: custom-events
     web:
       isPublic: true
       endpoints:
@@ -58,6 +71,18 @@ javaProcessors:
               isRequired: true
           requestDataFormatName: HttpEventRequest
           responseDataFormatName: HttpEventResponse
+        - name: "event"
+          contentTypes: [ "application/json" ]
+          method: 'POST'
+          path: "/org/{org}/event/{eventType}"
+          pathParams:
+            - name: org
+            - name: eventType
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          requestDataFormatName: EventRequest
+          responseDataFormatName: EventResponse
   - name: "controller"
     target: DATASPRAY
     hasDynamoState: true

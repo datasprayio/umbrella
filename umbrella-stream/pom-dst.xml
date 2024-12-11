@@ -39,6 +39,10 @@
     <name>Umbrella Stream DST</name>
     <url>https://dataspray.io</url>
 
+    <properties>
+        <dst.binary>dst</dst.binary>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -81,7 +85,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>dst</executable>
+                            <executable>${dst.binary}</executable>
                             <arguments>
                                 <argument>clean</argument>
                             </arguments>
@@ -94,7 +98,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>dst</executable>
+                            <executable>${dst.binary}</executable>
                             <arguments>
                                 <argument>generate</argument>
                             </arguments>
@@ -107,7 +111,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>dst</executable>
+                            <executable>${dst.binary}</executable>
                             <arguments>
                                 <argument>install</argument>
                             </arguments>
@@ -120,7 +124,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>dst</executable>
+                            <executable>${dst.binary}</executable>
                             <arguments>
                                 <argument>deploy</argument>
                             </arguments>
@@ -130,4 +134,13 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>dst-snapshot</id>
+            <properties>
+                <dst.binary>dst-snapshot</dst.binary>
+            </properties>
+        </profile>
+    </profiles>
 </project>

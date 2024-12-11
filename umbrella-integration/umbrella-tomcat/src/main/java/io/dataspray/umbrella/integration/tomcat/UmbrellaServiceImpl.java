@@ -105,7 +105,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
     }
 
     @Override
-    public HttpAction httpEvent(HttpData data) {
+    public HttpAction httpEvent(HttpMetadata data) {
         OperationMode currentMode = config.getMode();
         switch (currentMode) {
             case BLOCKING:
@@ -135,10 +135,10 @@ class UmbrellaServiceImpl implements UmbrellaService {
         this.executor.shutdown();
     }
 
-    private HttpEventResponse doHttpEvent(HttpData data, OperationMode currentMode) throws ApiException {
+    private HttpEventResponse doHttpEvent(HttpMetadata data, OperationMode currentMode) throws ApiException {
         try {
             HttpEventResponse httpEventResponse = api.httpEvent(orgName, new HttpEventRequest()
-                    .data(data)
+                    .httpMetadata(data)
                     .nodeId(nodeIdentifier)
                     .currentMode(currentMode));
             onNewConfig(httpEventResponse);

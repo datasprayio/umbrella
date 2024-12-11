@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$id": "CustomEvent",
+  "title": "CustomEvent",
+  "type": "object",
+  "required": [
+    "request",
+    "response"
+  ],
+  "properties": {
+    "request": {
+      "$ref": "../eventrequest/eventRequest.schema.json"
+    },
+    "response": {
+      "$ref": "../eventresponse/eventResponse.schema.json"
+    }
+  }
+}
