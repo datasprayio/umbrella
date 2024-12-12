@@ -4,26 +4,26 @@ version: V0.0.0
 name: umbrella
 namespace: io.dataspray.umbrella
 dataFormats:
-  - serde: JSON
-    name: HttpEvent
-  - serde: JSON
-    name: CustomEvent
-  - serde: JSON
-    name: HttpEventRequest
-  - serde: JSON
-    name: HttpEventResponse
-  - serde: JSON
-    name: EventRequest
-  - serde: JSON
-    name: EventResponse
-  - serde: JSON
-    name: PingRequest
-  - serde: JSON
-    name: PingResponse
-  - serde: JSON
-    name: Rules
-  - serde: JSON
-    name: Rule
+  - name: HttpEvent
+    serde: JSON
+  - name: CustomEvent
+    serde: JSON
+  - name: HttpEventRequest
+    serde: JSON
+  - name: HttpEventResponse
+    serde: JSON
+  - name: EventRequest
+    serde: JSON
+  - name: EventResponse
+    serde: JSON
+  - name: PingRequest
+    serde: JSON
+  - name: PingResponse
+    serde: JSON
+  - name: Rules
+    serde: JSON
+  - name: Rule
+    serde: JSON
 datasprayStores:
   - name: "ds-store"
     streams:
@@ -90,7 +90,7 @@ javaProcessors:
     web:
       isPublic: true
       endpoints:
-        - name: "ruleList"
+        - name: "rulesList"
           contentTypes: [ "application/json" ]
           method: 'GET'
           path: "/org/{org}/rules"
@@ -100,24 +100,13 @@ javaProcessors:
             - name: "Authorization"
               isRequired: true
           responseDataFormatName: Rules
-        - name: "ruleSet"
+        - name: "rulesSet"
           contentTypes: [ "application/json" ]
           method: 'PUT'
-          path: "/org/{org}/rule/{id}"
+          path: "/org/{org}/rules"
           pathParams:
             - name: org
-            - name: id
           headers:
             - name: "Authorization"
               isRequired: true
-          requestDataFormatName: Rule
-        - name: "ruleDelete"
-          contentTypes: [ "application/json" ]
-          method: 'DELETE'
-          path: "/org/{org}/rule/{id}"
-          pathParams:
-            - name: org
-            - name: id
-          headers:
-            - name: "Authorization"
-              isRequired: true
+          requestDataFormatName: Rules

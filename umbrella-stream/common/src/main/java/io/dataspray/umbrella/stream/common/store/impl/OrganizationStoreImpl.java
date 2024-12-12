@@ -22,6 +22,9 @@
 
 package io.dataspray.umbrella.stream.common.store.impl;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
@@ -94,24 +97,39 @@ public class OrganizationStoreImpl implements OrganizationStore {
     }
 
     @Override
-    public Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue) {
-        return getIfAuthorized(orgName, apiKeyValue, Optional.empty());
+    public Optional<Organization> getIfAuthorizedForIngestPing(String orgName, String apiKeyValueOrAuthHeader) {
+        return getIfAuthorizedForAdmin(orgName, apiKeyValueOrAuthHeader, Predicates.alwaysTrue());
     }
 
     @Override
-    public Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, String eventType) {
-        return getIfAuthorized(orgName, apiKeyValue, Optional.of(eventType));
+    public Optional<Organization> getIfAuthorizedForIngestEvent(String orgName, @Nullable String apiKeyValueOrAuthHeader, String eventType) {
+        return getIfAuthorizedForAdmin(orgName, apiKeyValueOrAuthHeader,
+                apiKey -> apiKey.getAllowedEventTypes().isEmpty()
+                        || apiKey.getAllowedEventTypes().contains(eventType));
     }
 
     @Override
-    public Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, Optional<String> eventTypeOpt) {
+    public Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader) {
+        return getIfAuthorizedForAdmin(orgName, apiKeyValueOrAuthHeader, ApiKey::getIsAdmin);
+    }
+
+    private Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader, Predicate<ApiKey> actionPredicate) {
+        Optional<String> apiKeyValueOpt = extractApiKeyValue(apiKeyValueOrAuthHeader);
+        if (apiKeyValueOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        String apiKeyValue = apiKeyValueOpt.get();
         return get(orgName, true).filter(org -> org.getApiKeysByName().values().stream()
                 .anyMatch(apiKey ->
-                        Boolean.TRUE.equals(apiKey.getEnabled())
+                        apiKey.getEnabled()
                                 && apiKey.getApiKeyValue().equals(apiKeyValue)
-                                && (!eventTypeOpt.isPresent()
-                                || apiKey.getAllowedEventTypes().isEmpty()
-                                || apiKey.getAllowedEventTypes().contains(eventTypeOpt.get()))));
+                                && actionPredicate.apply(apiKey)));
+    }
+
+    private Optional<String> extractApiKeyValue(@Nullable String apiKeyValue) {
+        return Optional.ofNullable(Strings.emptyToNull(apiKeyValue))
+                // As Authorization header
+                .map(apiKey -> apiKey.startsWith("apikey ") ? apiKey.substring("apikey ".length()) : apiKey);
     }
 
     @Override
@@ -190,8 +208,17 @@ public class OrganizationStoreImpl implements OrganizationStore {
     }
 
     @Override
-    public Organization createApiKey(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes) {
-        log.info("Creating api key {} for {}", apiKeyName, orgName);
+    public Organization createApiKeyForAdmin(String orgName, String apiKeyName) {
+        return createApiKey(orgName, apiKeyName, true, ImmutableSet.of());
+    }
+
+    @Override
+    public Organization createApiKeyForIngester(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes) {
+        return createApiKey(orgName, apiKeyName, false, allowedEventTypes);
+    }
+
+    private Organization createApiKey(String orgName, String apiKeyName, boolean isAdmin, ImmutableSet<String> allowedEventTypes) {
+        log.info("Creating api key {} for {} admin {} allowedEventTypes {}", apiKeyName, orgName, isAdmin, allowedEventTypes);
         checkArgument(!apiKeyName.isEmpty(), "apiKeyName cannot be empty");
         apiKeyName = apiKeyName.replace("[^a-zA-Z]", "_");
         UpdateBuilder<Organization> updateBuilder = schemaOrganization.update();
@@ -202,7 +229,8 @@ public class OrganizationStoreImpl implements OrganizationStore {
                         new ApiKey(
                                 KeygenUtil.generateSecureApiKey(),
                                 true,
-                                ImmutableSet.of()))
+                                isAdmin,
+                                allowedEventTypes))
                 .executeGetUpdated(dynamo);
         orgCache.put(orgName, Optional.of(org));
         return org;

@@ -2,20 +2,36 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "$id": "Rule",
   "title": "Rule",
-  "description": "Sample JSON schema; for utilities to edit this schema see https://json-schema.org/implementations.html",
   "type": "object",
   "required": [
-    "id"
+    "name",
+    "priority",
+    "enabled",
+    "source",
+    "eventTypes"
   ],
   "properties": {
     "name": {
       "type": "string"
     },
-    "id": {
+    "description": {
       "type": "string"
     },
-    "balance": {
-      "type": "number"
+    "priority": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "source": {
+      "type": "string"
+    },
+    "eventTypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

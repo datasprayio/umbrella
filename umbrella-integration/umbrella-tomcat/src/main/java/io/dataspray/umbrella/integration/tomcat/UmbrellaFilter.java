@@ -123,8 +123,10 @@ public class UmbrellaFilter implements Filter {
         data.setProto(httpServletRequest.getScheme());
         data.setIp(httpServletRequest.getRemoteAddr());
         data.sethXFwdProto(httpServletRequest.getHeader("X-Forwarded-Proto"));
+        data.sethCfConnIp(httpServletRequest.getHeader("CF-Connecting-IP"));
         data.sethTrueClientIp(httpServletRequest.getHeader("True-Client-IP"));
         data.sethXRealIp(httpServletRequest.getHeader("X-Real-IP"));
+        data.sethFwd(httpServletRequest.getHeader("Forwarded"));
         data.sethXFwdFor(httpServletRequest.getHeader("X-Forwarded-For"));
         data.sethVia(httpServletRequest.getHeader("Via"));
         data.setPort((long) httpServletRequest.getRemotePort());

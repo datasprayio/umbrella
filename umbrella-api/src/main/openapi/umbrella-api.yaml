@@ -37,6 +37,8 @@ components:
       type: object
       required:
         - nodeId
+        - currentMode
+        - httpMetadata
       properties:
         nodeId:
           $ref: '#/components/schemas/NodeIdentification'
@@ -59,11 +61,16 @@ components:
       type: object
       required:
         - nodeId
+        - currentMode
+        - key
+        - metadata
       properties:
         nodeId:
           $ref: '#/components/schemas/NodeIdentification'
         currentMode:
           $ref: '#/components/schemas/OperationMode'
+        key:
+          type: string
         metadata:
           type: object
           existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
@@ -82,8 +89,9 @@ components:
     CustomAction:
       title: CustomAction
       type: object
-      existingJavaType: 'com.google.common.collect.ImmutableMap<String, Object>' # For jsonschema2pojo
-      additionalProperties: true
+      existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
+      additionalProperties:
+        type: string
     Headers:
       type: object
       existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
@@ -184,9 +192,13 @@ components:
           type: string
         hXFwdProto:
           type: string
+        hCfConnIp:
+          type: string
         hTrueClientIp:
           type: string
         hXRealIp:
+          type: string
+        hFwd:
           type: string
         hXFwdFor:
           type: string

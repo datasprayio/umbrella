@@ -263,16 +263,17 @@
             <plugin>
                 <groupId>io.dataspray</groupId>
                 <artifactId>jsonschema2pojo-maven-plugin</artifactId>
-                <version>1.2.6</version>
+                <version>1.2.7-SNAPSHOT</version>
                 <configuration>
-                    <useDeduplication>true</useDeduplication>
                     <sourcePaths>
-                        <sourcePath>${project.basedir}/../schema/httpeventrequest/</sourcePath>
+                        <sourcePath>${project.basedir}/../schema/httpevent/</sourcePath>
+                        <sourcePath>${project.basedir}/../schema/customevent/</sourcePath>
+                        <sourcePath>${project.basedir}/../schema/pingresponse/</sourcePath>
+                        <sourcePath>${project.basedir}/../schema/httpeventresponse/</sourcePath>
                         <sourcePath>${project.basedir}/../schema/eventresponse/</sourcePath>
                         <sourcePath>${project.basedir}/../schema/pingrequest/</sourcePath>
-                        <sourcePath>${project.basedir}/../schema/httpeventresponse/</sourcePath>
+                        <sourcePath>${project.basedir}/../schema/httpeventrequest/</sourcePath>
                         <sourcePath>${project.basedir}/../schema/eventrequest/</sourcePath>
-                        <sourcePath>${project.basedir}/../schema/pingresponse/</sourcePath>
                     </sourcePaths>
                     <outputDirectory>${project.build.directory}/generated-sources/json</outputDirectory>
                     <targetPackage>io.dataspray.umbrella</targetPackage>
@@ -301,6 +302,8 @@
                     <initializeCollections>true</initializeCollections>
                     <includeConstructors>true</includeConstructors>
                     <includeRequiredPropertiesConstructor>true</includeRequiredPropertiesConstructor>
+                    <!-- Deduplicates identical classes, only available in forked io.dataspray groupId -->
+                    <useDeduplication>true</useDeduplication>
                 </configuration>
                 <executions>
                     <execution>

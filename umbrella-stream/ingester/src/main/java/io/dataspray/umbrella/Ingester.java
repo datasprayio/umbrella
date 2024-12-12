@@ -23,11 +23,12 @@
 package io.dataspray.umbrella;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import io.dataspray.runner.DynamoProvider;
 import io.dataspray.runner.dto.web.HttpResponse;
 import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 import io.dataspray.runner.dto.web.HttpResponseException;
-import io.dataspray.umbrella.HttpEventRequest.OperationMode;
+import io.dataspray.umbrella.RuleRunner.Response;
 import io.dataspray.umbrella.stream.common.store.HealthStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.Organization;
@@ -40,13 +41,13 @@ public class Ingester implements Processor {
 
     public static final String WEB_HTTP_EVENT_TYPE = "http";
 
-    OrganizationStore organizationStore = new OrganizationStoreImpl(
+    private final OrganizationStore organizationStore = new OrganizationStoreImpl(
             SingleTableProvider.get(),
             DynamoProvider.get());
-    HealthStore healthStore = new HealthStoreImpl(
+    private final HealthStore healthStore = new HealthStoreImpl(
             SingleTableProvider.get(),
             DynamoProvider.get());
-    RuleRunner ruleRunner = new RuleRunnerImpl();
+    private final RuleRunner ruleRunner = new RuleRunnerImpl();
 
     public HttpResponse webNodePing(
             PingRequest pingRequest,
@@ -55,7 +56,8 @@ public class Ingester implements Processor {
             HttpResponseBuilder<PingResponse> responseBuilder,
             WebCoordinator coordinator
     ) {
-        Organization organization = authorize(orgName, authorizationHeader, Optional.empty(), responseBuilder);
+        Organization organization = organizationStore.getIfAuthorizedForIngestPing(orgName, authorizationHeader)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
         healthStore.ping(organization.getOrgName(), pingRequest.getNodeId());
 
@@ -74,42 +76,45 @@ public class Ingester implements Processor {
             HttpResponseBuilder<HttpEventResponse> responseBuilder,
             WebCoordinator coordinator
     ) {
-        Organization organization = authorize(orgName, authorizationHeader, Optional.of(WEB_HTTP_EVENT_TYPE), responseBuilder);
+        Organization organization = organizationStore.getIfAuthorizedForIngestEvent(orgName, authorizationHeader, WEB_HTTP_EVENT_TYPE)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
-        Action action = ruleRunner.run(organization, WEB_HTTP_EVENT_TYPE, httpEventRequest);
-        HttpEventResponse httpEventResponse = HttpEventResponse.builder()
-                .withAction(action)
-                // TODO only send if config is changed, need to receive last updated time from client
-                .withConfigRefresh(Config.builder()
-                        .withMode(OperationMode.fromValue(organization.getMode().name()))
+        Response<Action> response = ruleRunner.run(organization, httpEventRequest.getHttpMetadata());
+
+        coordinator.sendToHttpEvents(
+                response.getKeyOpt().orElseGet(() -> extractIp(httpEventRequest)),
+                new HttpEvent(httpEventRequest, response.getAction()));
+
+        return responseBuilder.ok(HttpEventResponse.builder()
+                        .withAction(response.getAction())
+                        // TODO only send if config is changed, need to receive last updated time from client
+                        .withConfigRefresh(Config.builder()
+                                .withMode(OperationMode.fromValue(organization.getMode().name()))
+                                .build())
                         .build())
                 .build();
-
-        coordinator.sendToHttpEvents("", new HttpEvent(httpEventRequest, httpEventResponse));
-
-        return responseBuilder.ok(httpEventResponse).build();
     }
 
     @Override
     public HttpResponse webEvent(
             EventRequest eventRequest,
             String orgName,
-            String eventTypePath,
+            String eventType,
             String authorizationHeader,
             HttpResponseBuilder<EventResponse> responseBuilder,
             WebCoordinator coordinator
     ) {
-        Organization organization = authorize(orgName, authorizationHeader, Optional.of(WEB_HTTP_EVENT_TYPE), responseBuilder);
+        Organization organization = organizationStore.getIfAuthorizedForIngestEvent(orgName, authorizationHeader, eventType)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
-        Action action = ruleRunner.run(organization, WEB_HTTP_EVENT_TYPE, httpEventRequest);
+        Response<ImmutableMap<String, String>> response = ruleRunner.run(organization, eventRequest.getMetadata(), eventType);
 
-        coordinator.sendToHttpEvents("", new HttpEvent(
-                eventRequest,
-                action
-        ));
+        coordinator.sendToCustomEvents(
+                response.getKeyOpt().orElse(eventRequest.getKey()),
+                new CustomEvent(eventRequest, response.getAction()));
 
-        return responseBuilder.ok(HttpEventResponse.builder()
-                        .withAction(action)
+        return responseBuilder.ok(EventResponse.builder()
+                        .withAction(response.getAction())
                         // TODO only send if config is changed, need to receive last updated time from client
                         .withConfigRefresh(Config.builder()
                                 .withMode(OperationMode.fromValue(organization.getMode().name()))
@@ -121,13 +126,26 @@ public class Ingester implements Processor {
     private Organization authorize(
             String orgName,
             String authorizationHeader,
-            Optional<String> eventType,
+            Optional<String> eventTypeOpt,
             HttpResponseBuilder<?> responseBuilder
     ) throws HttpResponseException {
         return Optional.ofNullable(Strings.emptyToNull(authorizationHeader))
                 .filter(h -> h.startsWith("apikey "))
                 .map(h -> h.substring("apikey ".length()))
-                .flatMap(apiKeyValue -> organizationStore.getIfAuthorized(orgName, apiKeyValue, eventType))
+                .flatMap(apiKeyValue -> eventTypeOpt.isPresent()
+                        ? organizationStore.getIfAuthorizedForIngestEvent(orgName, apiKeyValue, eventTypeOpt.get())
+                        : organizationStore.getIfAuthorizedForIngestPing(orgName, apiKeyValue))
                 .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
+    }
+
+    private String extractIp(HttpEventRequest request) {
+        HttpMetadata metadata = request.getHttpMetadata();
+        return metadata.getIp()
+                .or(metadata::gethXRealIp)
+                .or(metadata::gethFwd)
+                .or(metadata::gethXFwdFor)
+                .or(metadata::gethCfConnIp)
+                .or(metadata::gethTrueClientIp)
+                .orElseGet(request::getNodeId);
     }
 }

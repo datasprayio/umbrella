@@ -24,6 +24,10 @@ package io.dataspray.umbrella;
 
 import com.google.common.collect.ImmutableMap;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.Organization;
+import lombok.Builder;
+import lombok.Value;
+
+import java.util.Optional;
 
 public interface RuleRunner {
 
@@ -32,13 +36,19 @@ public interface RuleRunner {
      *
      * @return Action to be taken in response to the rules.
      */
-    Action run(Organization org, HttpMetadata httpMetadata);
+    Response<Action> run(Organization org, HttpMetadata httpMetadata);
 
     /**
      * Run rules against a custom event.
      *
      * @return Custom response to be handled by caller.
      */
-    ImmutableMap<String, String> run(Organization org, ImmutableMap<String, String> metadata, String eventType);
+    Response<ImmutableMap<String, String>> run(Organization org, ImmutableMap<String, String> metadata, String eventType);
 
+    @Value
+    @Builder
+    class Response<T> {
+        Optional<String> keyOpt;
+        T action;
+    }
 }

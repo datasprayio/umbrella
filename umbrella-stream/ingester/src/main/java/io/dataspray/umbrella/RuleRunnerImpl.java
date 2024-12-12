@@ -22,14 +22,12 @@
 
 package io.dataspray.umbrella;
 
-import com.google.common.base.Enums;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.dataspray.runner.util.GsonUtil;
-import io.dataspray.umbrella.Action.RequestProcess;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.Organization;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.Rule;
 import io.idml.*;
@@ -43,10 +41,23 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.function.Function;
+
+import static io.dataspray.umbrella.Ingester.WEB_HTTP_EVENT_TYPE;
 
 @Slf4j
 public class RuleRunnerImpl implements RuleRunner {
 
+    private static final Response<Action> RESPONSE_WEB_DEFAULT = Response.<Action>builder()
+            .keyOpt(Optional.empty())
+            .action(Action.builder()
+                    .withRequestProcess(RequestProcess.ALLOW)
+                    .build())
+            .build();
+    private static final Response<ImmutableMap<String, String>> RESPONSE_CUSTOM_DEFAULT = Response.<ImmutableMap<String, String>>builder()
+            .keyOpt(Optional.empty())
+            .action(ImmutableMap.of())
+            .build();
     private static final Duration COMPILED_CACHE_TTL = Duration.ofMinutes(5);
     private final Cache<String, CompiledRules> compiledCache = CacheBuilder.newBuilder()
             .expireAfterAccess(COMPILED_CACHE_TTL)
@@ -55,93 +66,134 @@ public class RuleRunnerImpl implements RuleRunner {
     private final Idml idml = Idml.staticBuilderWithDefaults(idmlJson).build();
 
     @Override
-    public Action run(Organization org, HttpMetadata httpMetadata) {
-        IdmlValue output = runInternal(org, httpMetadata, Ingester.WEB_HTTP_EVENT_TYPE);
-        // TODO
+    public Response<Action> run(Organization org, HttpMetadata httpMetadata) {
+        return runInternal(org, WEB_HTTP_EVENT_TYPE, httpMetadata)
+                .map(output -> Response.<Action>builder()
+                        .keyOpt(output.getKey())
+                        .action(Action.builder()
+                                .withRequestProcess(output.getOut().get("process").toStringValue().equalsIgnoreCase("block") ? RequestProcess.BLOCK : RequestProcess.ALLOW)
+                                .withResponseStatus(output.getOut().get("status").toLongOption().map(l -> (Long) l).orNull(null))
+                                .withResponseHeaders(parseMap(output.getOut().get("headers"), IdmlValue::toStringValue))
+                                .withRequestMetadata(parseMap(output.getOut().get("metadata"), IdmlValue::toStringValue))
+                                .withResponseCookies(parseList(output.getOut().get("cookies"), value -> new Cookie(
+                                        value.get("name").toStringValue(),
+                                        value.get("value").toStringValue(),
+                                        value.get("maxAge").toLongOption().orNull(null),
+                                        value.get("domain").toStringOption().orNull(null),
+                                        value.get("path").toStringOption().orNull(null),
+                                        value.get("secure").toBoolOption().orNull(null),
+                                        value.get("httpOnly").toBoolOption().orNull(null),
+                                        value.get("sameSite").toStringOption().orNull(null)
+                                )))
+                                .build())
+                        .build())
+                .orElse(RESPONSE_WEB_DEFAULT);
     }
 
     @Override
-    public ImmutableMap<String, String> run(Organization org, ImmutableMap<String, String> metadata, String eventType) {
-        IdmlValue output = runInternal(org, metadata, eventType);
-        // TODO
+    public Response<ImmutableMap<String, String>> run(Organization org, ImmutableMap<String, String> metadata, String eventType) {
+        return runInternal(org, eventType, metadata)
+                .map(output -> Response.<ImmutableMap<String, String>>builder()
+                        .keyOpt(output.getKey())
+                        .action(parseMap(output.getOut(), IdmlValue::toStringValue))
+                        .build())
+                .orElse(RESPONSE_CUSTOM_DEFAULT);
     }
 
     @SneakyThrows
-    private IdmlValue runInternal(Organization org, Object event, String eventType) {
+    private Optional<RuleOutput> runInternal(Organization org, String eventType, Object event) {
 
-        CompiledRules compiledRules = compile(org);
-        if (compiledRules.getRules().isEmpty()) {
+        if (org.getRulesByName().isEmpty()) {
             log.info("No rules to evaluate");
-            return Action.builder()
-                    .withRequestProcess(RequestProcess.ALLOW)
-                    .build();
+            return Optional.empty();
         }
 
-        RuleResult result = RuleResult.ALLOW;
+        CompiledRules compiledRules = compile(org);
+
+        RuleInput input = buildInput(eventType, event);
+        Optional<RuleOutput> output = Optional.empty();
         for (CompiledRule rule : compiledRules.getRules()) {
 
-            // Ensure rule is applicable to event type
+            if (!rule.isEnabled()) {
+                continue;
+            }
+
             if (!rule.getEventTypes().contains(eventType)) {
                 continue;
             }
 
-            // Evaluate rule
-            IdmlObject resultObj;
+            // Compile
+            Mapping mapping;
             try {
-                resultObj = rule.getMapping()
-                        .run(idmlObject);
+                mapping = rule.getMapping();
+            } catch (Exception ex) {
+                log.error("Error compiling rule {}", rule.getRuleName(), ex);
+                continue;
+            }
+
+            // Parse input
+            IdmlValue inputRaw = parseInput(input);
+
+            // Evaluate
+            IdmlObject outputRaw;
+            try {
+                outputRaw = mapping.run(inputRaw);
             } catch (Exception ex) {
                 log.error("Error evaluating rule {}", rule.getRuleName(), ex);
                 continue;
             }
 
-            // Extract result
-            // TODO tag along custom headers, status code, etc... from resultobj
-            result = Enums.getIfPresent(RuleResult.class,
-                            resultObj
-                                    .get("action")
-                                    .toStringValue()
-                                    .toUpperCase())
-                    .or(RuleResult.ALLOW);
-            log.info("Evaluated rule {} with {}", rule.getRuleName(), result);
+            // Parse output
+            try {
+                output = Optional.of(parseOutput(outputRaw, output));
+            } catch (Exception ex) {
+                log.error("Error parsing output for rule {}", rule.getRuleName(), ex);
+                continue;
+            }
 
-            // For block, stop processing
-            if (result == RuleResult.BLOCK) {
+            if (output.get().isStop()) {
                 break;
             }
+
+            // Build next input
+            input = buildInput(input, output.get());
         }
-        return Action.builder()
-                .withRequestProcess(result.getRequestProcess())
+
+        return output;
+    }
+
+    @SneakyThrows
+    private RuleInput buildInput(String eventType, Object event) {
+        return new RuleInput(
+                eventType,
+                event,
+                null,
+                null);
+    }
+
+    @SneakyThrows
+    private RuleInput buildInput(RuleInput previousInput, RuleOutput previousOutput) {
+        return previousInput.toBuilder()
+                .state(previousOutput.getState())
+                .out(previousOutput.getOut())
                 .build();
     }
 
+
     @SneakyThrows
-    private IdmlValue getInput(String eventType, Object event, Optional<RuleInput> previousInput, Optional<RuleOutput> previousOutput) {
+    private IdmlValue parseInput(RuleInput ruleInput) {
         // TODO: extend IDML to convert Java object to IDML object
-        return idmlJson.parseObject(GsonUtil.get().toJson(new RuleInput(
-                eventType,
-                event,
-                previousOutput.map(RuleOutput::getState)
-                        .or(() -> previousInput.map(RuleInput::getState))
-                        .orElse(null),
-                previousOutput.map(RuleOutput::getOut)
-                        .orElse(null))));
+        return idmlJson.parseObject(GsonUtil.get().toJson(ruleInput));
     }
 
     @SneakyThrows
-    private RuleOutput parseOutput(IdmlValue output) {
+    private RuleOutput parseOutput(IdmlValue output, Optional<RuleOutput> previousOutput) {
         return new RuleOutput(
                 output.get("state"),
                 output.get("out"),
-                output.get("stop").isTrueValue());
-    }
-
-    @Getter
-    @AllArgsConstructor
-    enum RuleResult {
-        ALLOW(RequestProcess.ALLOW),
-        BLOCK(RequestProcess.BLOCK);
-        private final RequestProcess requestProcess;
+                output.get("stop").isTrueValue(),
+                Optional.<String>ofNullable(output.get("key").toStringOption().orNull(null))
+                        .or(() -> previousOutput.flatMap(RuleOutput::getKey)));
     }
 
     private CompiledRules compile(Organization org) {
@@ -160,21 +212,39 @@ public class RuleRunnerImpl implements RuleRunner {
 
     private ImmutableList<CompiledRule> compile(ImmutableMap<String, Rule> rulesByName) {
         return rulesByName.entrySet().stream()
-                .filter(e -> e.getValue().getEnabled())
-                .sorted(Comparator.<Entry<String, Rule>>comparingInt(e -> e.getValue().getPriority()).reversed())
-                .map(e -> {
-                    Mapping mapping;
-                    try {
-                        mapping = idml.compile(e.getValue().getSource());
-                    } catch (DocumentParseException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                    return new CompiledRule(
-                            e.getValue().getEventTypes(),
-                            e.getKey(),
-                            mapping);
-                })
+                .sorted(Comparator.<Entry<String, Rule>>comparingLong(e -> e.getValue().getPriority()).reversed())
+                .map(e -> new CompiledRule(
+                        e.getValue().getEnabled(),
+                        e.getValue().getEventTypes(),
+                        e.getKey(),
+                        e.getValue().getSource()))
                 .collect(ImmutableList.toImmutableList());
+    }
+
+    private Mapping compile(String source) {
+        try {
+            return idml.compile(source);
+        } catch (DocumentParseException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private <T> ImmutableMap<String, T> parseMap(IdmlValue input, Function<IdmlValue, T> keyMapper) {
+        ImmutableMap.Builder<String, T> builder = ImmutableMap.builder();
+        input.keys().iterator().foreach(key -> {
+            builder.put(key.toStringValue(), keyMapper.apply(input.get(key)));
+            return null;
+        });
+        return builder.build();
+    }
+
+    private <T> ImmutableList<T> parseList(IdmlValue input, Function<IdmlValue, T> objMapper) {
+        ImmutableList.Builder<T> builder = ImmutableList.builder();
+        input.iterator().foreach(obj -> {
+            builder.add(objMapper.apply(input.get(obj)));
+            return null;
+        });
+        return builder.build();
     }
 
     @Value
@@ -185,17 +255,21 @@ public class RuleRunnerImpl implements RuleRunner {
     }
 
     @Value
-    static class CompiledRule {
+    class CompiledRule {
+        boolean enabled;
         ImmutableSet<String> eventTypes;
         String ruleName;
-        Mapping mapping;
+        String source;
+        @Getter(lazy = true)
+        Mapping mapping = compile(source);
     }
 
     @Value
+    @Builder(toBuilder = true)
     static class RuleInput {
 
         /**
-         * Http type {@link Ingester.WEB_HTTP_EVENT_TYPE} or custom type.
+         * Http type {@code WEB_HTTP_EVENT_TYPE} or custom type.
          */
         @NonNull
         String eventType;
@@ -234,5 +308,11 @@ public class RuleRunnerImpl implements RuleRunner {
          * Default is false.
          */
         boolean stop;
+
+        /**
+         * Override key for this event.
+         * This should be a user identifier such as an IP address, username, email.
+         */
+        Optional<String> key;
     }
 }

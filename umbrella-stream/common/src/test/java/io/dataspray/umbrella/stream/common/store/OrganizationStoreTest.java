@@ -66,42 +66,42 @@ class OrganizationStoreTest extends AbstractDynamoTest {
         store.create("my org");
 
         // Test create api key
-        Organization org = store.createApiKey("my org", "my api key", ImmutableSet.of());
+        Organization org = store.createApiKeyForIngester("my org", "my api key", ImmutableSet.of());
         assertNotNull(org.getApiKeysByName().get("my api key"));
         assertTrue(org.getApiKeysByName().get("my api key").getEnabled());
         assertEquals(org.getApiKeysByName().get("my api key").getAllowedEventTypes(), ImmutableSet.of());
 
         // Test auth without event types
         String apiKeyValue = org.getApiKeysByName().get("my api key").getApiKeyValue();
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue).isPresent());
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue, "event type").isPresent());
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue, "other event type").isPresent());
-        assertFalse(store.getIfAuthorized("my other org", apiKeyValue, "event type").isPresent());
-        assertFalse(store.getIfAuthorized("my org", "my other api key value", "event type").isPresent());
+        assertTrue(store.getIfAuthorizedForIngestPing("my org", apiKeyValue).isPresent());
+        assertTrue(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "event type").isPresent());
+        assertTrue(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "other event type").isPresent());
+        assertFalse(store.getIfAuthorizedForIngestEvent("my other org", apiKeyValue, "event type").isPresent());
+        assertFalse(store.getIfAuthorizedForIngestEvent("my org", "my other api key value", "event type").isPresent());
 
         // Test adding event types
         org = store.setApiKeyAllowedEventTypes("my org", "my api key", ImmutableSet.of("event type"));
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue).isPresent());
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue, "event type").isPresent());
-        assertFalse(store.getIfAuthorized("my org", apiKeyValue, "other event type").isPresent());
-        assertFalse(store.getIfAuthorized("my other org", apiKeyValue, "event type").isPresent());
-        assertFalse(store.getIfAuthorized("my org", "my other other api key value", "event type").isPresent());
+        assertTrue(store.getIfAuthorizedForIngestPing("my org", apiKeyValue).isPresent());
+        assertTrue(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "event type").isPresent());
+        assertFalse(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "other event type").isPresent());
+        assertFalse(store.getIfAuthorizedForIngestEvent("my other org", apiKeyValue, "event type").isPresent());
+        assertFalse(store.getIfAuthorizedForIngestEvent("my org", "my other other api key value", "event type").isPresent());
 
         // Test enabling disabling
         org = store.setApiKeyEnabled("my org", "my api key", false);
-        assertFalse(store.getIfAuthorized("my org", apiKeyValue).isPresent());
-        assertFalse(store.getIfAuthorized("my org", apiKeyValue, "event type").isPresent());
+        assertFalse(store.getIfAuthorizedForIngestPing("my org", apiKeyValue).isPresent());
+        assertFalse(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "event type").isPresent());
         org = store.setApiKeyEnabled("my org", "my api key", true);
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue, "event type").isPresent());
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue).isPresent());
+        assertTrue(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "event type").isPresent());
+        assertTrue(store.getIfAuthorizedForIngestPing("my org", apiKeyValue).isPresent());
 
         // Test removing event types
         org = store.setApiKeyAllowedEventTypes("my org", "my api key", ImmutableSet.of());
-        assertTrue(store.getIfAuthorized("my org", apiKeyValue, "other event type").isPresent());
+        assertTrue(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "other event type").isPresent());
 
         // Test removing key
         org = store.removeApiKey("my org", "my api key");
-        assertFalse(store.getIfAuthorized("my org", apiKeyValue, "event type").isPresent());
+        assertFalse(store.getIfAuthorizedForIngestEvent("my org", apiKeyValue, "event type").isPresent());
     }
 
     @Test
@@ -158,14 +158,14 @@ class OrganizationStoreTest extends AbstractDynamoTest {
         org = store.setRules("my org", ImmutableMap.of(
                         "my rule 1", Rule.builder()
                                 .description("description 1")
-                                .priority(42)
+                                .priority(42L)
                                 .enabled(true)
                                 .source("rule 1 source")
                                 .eventTypes(ImmutableSet.of(WEB_EVENT_TYPE, "custom"))
                                 .build(),
                         "my rule 2", Rule.builder()
                                 .description("description 2")
-                                .priority(43)
+                                .priority(43L)
                                 .enabled(true)
                                 .source("rule 2 source")
                                 .eventTypes(ImmutableSet.of("custom"))

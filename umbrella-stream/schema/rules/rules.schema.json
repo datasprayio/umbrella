@@ -2,20 +2,17 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "$id": "Rules",
   "title": "Rules",
-  "description": "Sample JSON schema; for utilities to edit this schema see https://json-schema.org/implementations.html",
   "type": "object",
   "required": [
-    "id"
+    "items"
   ],
   "properties": {
-    "name": {
-      "type": "string"
+    "items": {
+      "$ref": "../rule/rule.schema.json"
     },
-    "id": {
-      "type": "string"
-    },
-    "balance": {
-      "type": "number"
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time"
     }
   }
 }

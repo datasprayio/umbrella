@@ -28,6 +28,7 @@ import io.dataspray.singletable.DynamoTable;
 import lombok.*;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 
+import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -44,11 +45,11 @@ public interface OrganizationStore {
 
     Optional<Organization> get(String orgName, boolean useCache);
 
-    Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue);
+    Optional<Organization> getIfAuthorizedForIngestPing(String orgName, @Nullable String apiKeyValueOrAuthHeader);
 
-    Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, String eventType);
+    Optional<Organization> getIfAuthorizedForIngestEvent(String orgName, @Nullable String apiKeyValueOrAuthHeader, String eventType);
 
-    Optional<Organization> getIfAuthorized(String orgName, String apiKeyValue, Optional<String> eventType);
+    Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader);
 
     Organization setMode(String orgName, Mode mode);
 
@@ -60,7 +61,9 @@ public interface OrganizationStore {
 
     Organization setEndpointMapperSource(String orgName, Optional<String> endpointMapperSource);
 
-    Organization createApiKey(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes);
+    Organization createApiKeyForAdmin(String orgName, String apiKeyName);
+
+    Organization createApiKeyForIngester(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes);
 
     Organization removeApiKey(String orgName, String apiKeyName);
 
@@ -118,7 +121,7 @@ public interface OrganizationStore {
         String description;
 
         @NonNull
-        Integer priority;
+        Long priority;
 
         @NonNull
         Boolean enabled;
@@ -151,6 +154,9 @@ public interface OrganizationStore {
 
         @NonNull
         Boolean enabled;
+
+        @NonNull
+        Boolean isAdmin;
 
         /**
          * Access to emit specific events. If empty, has access to emit all.

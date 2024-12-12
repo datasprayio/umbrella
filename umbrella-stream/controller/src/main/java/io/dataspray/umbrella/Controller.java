@@ -22,44 +22,56 @@
 
 package io.dataspray.umbrella;
 
+import io.dataspray.runner.DynamoProvider;
 import io.dataspray.runner.dto.web.HttpResponse;
 import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
+import io.dataspray.runner.dto.web.HttpResponseException;
+import io.dataspray.umbrella.stream.common.store.OrganizationStore;
+import io.dataspray.umbrella.stream.common.store.OrganizationStore.Organization;
+import io.dataspray.umbrella.stream.common.store.impl.OrganizationStoreImpl;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
+
+import java.time.Instant;
 
 public class Controller implements Processor {
 
-    public HttpResponse webRuleList(
-            String orgPath,
+    private final OrganizationStore organizationStore = new OrganizationStoreImpl(
+            SingleTableProvider.get(),
+            DynamoProvider.get());
+
+    public HttpResponse webRulesList(
+            String orgName,
             String authorizationHeader,
             HttpResponseBuilder<Rules> responseBuilder,
             WebCoordinator coordinator
     ) {
+        Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
         // TODO
-        return responseBuilder.ok().build();
+        return responseBuilder.ok(responseBuilder.ok(Rules.builder()
+                .with
+                .build())).build();
     }
 
-    public HttpResponse webRuleSet(
-            Rule rule,
-            String orgPath,
-            String idPath,
+    public HttpResponse webRulesSet(
+            Rules rules,
+            String orgName,
             String authorizationHeader,
             HttpResponseBuilder<Object> responseBuilder,
             WebCoordinator coordinator
     ) {
+        Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
-        // TODO
-        return responseBuilder.ok().build();
-    }
-
-    public HttpResponse webRuleDelete(
-            String orgPath,
-            String idPath,
-            String authorizationHeader,
-            HttpResponseBuilder<Object> responseBuilder,
-            WebCoordinator coordinator
-    ) {
-
-        // TODO
+        try {
+            organizationStore.setRules(orgName, rules., rules.getLastUpdated());
+        } catch (ConditionalCheckFailedException ex) {
+            return responseBuilder
+                    .statusCode(409)
+                    .body("Conflict: rules were updated by another request; expected lastUpdated to be " + organization.getRulesLastUpdated())
+                    .build();
+        }
         return responseBuilder.ok().build();
     }
 }

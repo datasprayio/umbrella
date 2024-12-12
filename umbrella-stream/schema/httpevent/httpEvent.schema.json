@@ -12,7 +12,7 @@
       "$ref": "../httpeventrequest/httpEventRequest.schema.json"
     },
     "response": {
-      "$ref": "../httpeventresponse/httpEventResponse.schema.json"
+      "$ref": "../httpeventresponse/httpEventResponse.schema.json#/properties/action"
     }
   }
 }

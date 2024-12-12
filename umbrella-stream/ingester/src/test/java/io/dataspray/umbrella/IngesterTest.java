@@ -29,7 +29,6 @@ import io.dataspray.runner.DynamoProvider;
 import io.dataspray.runner.Message;
 import io.dataspray.runner.dto.web.HttpResponse;
 import io.dataspray.runner.util.GsonUtil;
-import io.dataspray.umbrella.Action.RequestProcess;
 import io.dataspray.umbrella.stream.common.store.HealthStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore.ApiKey;
@@ -57,7 +56,6 @@ public class IngesterTest extends AbstractTest {
     Organization org;
     ApiKey apiKey;
 
-
     HealthStore healthStore;
     RuleRunner ruleRunner;
 
@@ -69,10 +67,10 @@ public class IngesterTest extends AbstractTest {
         healthStore = new HealthStoreImpl(
                 SingleTableProvider.get(),
                 DynamoProvider.get());
-        ruleRunner = new RuleRunner();
+        ruleRunner = new RuleRunnerImpl();
 
         org = organizationStore.create("org1");
-        apiKey = organizationStore.createApiKey(org.getOrgName(), "apikey1", ImmutableSet.of())
+        apiKey = organizationStore.createApiKeyForIngester(org.getOrgName(), "apikey1", ImmutableSet.of())
                 .getApiKeysByName().get("apikey1");
     }
 
@@ -96,8 +94,8 @@ public class IngesterTest extends AbstractTest {
     }
 
     private static final List<Arguments> testWebHttpEvent = List.of(
-            argumentSet("allow", "action = 'ALLOW'", true, RequestProcess.ALLOW),
-            argumentSet("block", "action = 'BLOCK'", true, RequestProcess.BLOCK)
+            argumentSet("allow", "out.process = 'ALLOW'", true, RequestProcess.ALLOW),
+            argumentSet("block", "out.process = 'BLOCK'", true, RequestProcess.BLOCK)
     );
 
     @ParameterizedTest(name = "testWebHttpEvent ''{0}''")
@@ -108,7 +106,7 @@ public class IngesterTest extends AbstractTest {
                 : ImmutableMap.of(
                 "rule1", Rule.builder()
                         .source(source)
-                        .priority(100)
+                        .priority(100L)
                         .description("my rule")
                         .enabled(ruleEnabled)
                         .eventTypes(ImmutableSet.of(WEB_EVENT_TYPE))
@@ -118,6 +116,8 @@ public class IngesterTest extends AbstractTest {
         TestCoordinator coordinator = TestCoordinator.createForWeb();
         HttpEventRequest request = HttpEventRequest.builder()
                 .withNodeId("node1")
+                .withHttpMetadata(HttpMetadata.builder().withIp("127.0.0.1").build())
+                .withCurrentMode(OperationMode.BLOCKING)
                 .build();
         HttpResponse response = processor.webHttpEvent(
                 request,
@@ -127,8 +127,10 @@ public class IngesterTest extends AbstractTest {
                 coordinator);
 
         assertEquals(200, response.getStatusCode());
-        assertEquals(List.of(request), coordinator.getSentHttpEventRequest().stream().map(Message::getData).toList());
+        assertEquals(List.of(request), coordinator.getSentHttpEvent().stream().map(Message::getData).map(HttpEvent::getRequest).toList());
         HttpEventResponse httpEventResponse = GsonUtil.get().fromJson(response.getBody(), HttpEventResponse.class);
         assertEquals(expectRequestProcess, httpEventResponse.getAction().getRequestProcess());
+
+        coordinator.assertSentNoneCustomEvent();
     }
 }

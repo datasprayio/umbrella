@@ -12,7 +12,7 @@
       "$ref": "../eventrequest/eventRequest.schema.json"
     },
     "response": {
-      "$ref": "../eventresponse/eventResponse.schema.json"
+      "$ref": "../eventresponse/eventResponse.schema.json#/properties/action"
     }
   }
 }
