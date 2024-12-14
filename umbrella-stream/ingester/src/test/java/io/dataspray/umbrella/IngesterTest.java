@@ -43,10 +43,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.FieldSource;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_EVENT_TYPE;
+import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_HTTP_EVENT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
@@ -94,11 +95,15 @@ public class IngesterTest extends AbstractTest {
     }
 
     private static final List<Arguments> testWebHttpEvent = List.of(
-            argumentSet("allow", "out.process = 'ALLOW'", true, RequestProcess.ALLOW),
-            argumentSet("block", "out.process = 'BLOCK'", true, RequestProcess.BLOCK)
+            argumentSet("process explicitly allowed", "out.process = 'ALLOW'", true, RequestProcess.ALLOW),
+            argumentSet("process explicitly blocked", "out.process = 'BloCK'", true, RequestProcess.BLOCK),
+            argumentSet("invalid process; process allowed", "out.process = 'IDONTKNOW'", true, RequestProcess.ALLOW),
+            argumentSet("no process; process allowed", "out.something = 'unrelated'", true, RequestProcess.ALLOW),
+            argumentSet("compilation failed; process allowed", "'''..1435678@#$$Y@*($^*(%", true, RequestProcess.ALLOW),
+            argumentSet("rule disabled; process allowed", "out.process = 'BLOCK'", false, RequestProcess.ALLOW)
     );
 
-    @ParameterizedTest(name = "testWebHttpEvent ''{0}''")
+    @ParameterizedTest
     @FieldSource
     public void testWebHttpEvent(String source, boolean ruleEnabled, RequestProcess expectRequestProcess) {
         organizationStore.setRules(org.getOrgName(), Strings.isNullOrEmpty(source)
@@ -109,9 +114,9 @@ public class IngesterTest extends AbstractTest {
                         .priority(100L)
                         .description("my rule")
                         .enabled(ruleEnabled)
-                        .eventTypes(ImmutableSet.of(WEB_EVENT_TYPE))
+                        .eventTypes(ImmutableSet.of(WEB_HTTP_EVENT_TYPE))
                         .build()
-        ));
+        ), Optional.empty());
 
         TestCoordinator coordinator = TestCoordinator.createForWeb();
         HttpEventRequest request = HttpEventRequest.builder()

@@ -292,23 +292,12 @@ public class OrganizationStoreImpl implements OrganizationStore {
     }
 
     @Override
-    public Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName) {
-        return setRules(orgName, rulesByName, null);
-    }
-
-    @Override
-    public Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, @Nullable Instant expectedLastUpdated) {
+    public Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, Optional<Instant> expectedLastUpdatedOpt) {
         log.info("Changing rules for {}", orgName);
         UpdateBuilder<Organization> updateBuilder = schemaOrganization.update();
-        if (rulesByName.isEmpty()) {
-            updateBuilder.remove("rulesByName");
-        } else {
-            updateBuilder.set("rulesByName", rulesByName);
-        }
-        if (expectedLastUpdated != null) {
-            updateBuilder.conditionFieldEquals("rulesLastUpdated", expectedLastUpdated);
-        }
+        expectedLastUpdatedOpt.ifPresent(instant -> updateBuilder.conditionFieldEquals("rulesLastUpdated", instant));
         Organization org = updateBuilder
+                .set("rulesByName", rulesByName)
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .set("rulesLastUpdated", Instant.now())
@@ -321,7 +310,7 @@ public class OrganizationStoreImpl implements OrganizationStore {
     public Organization setRuleEnabled(String orgName, String ruleName, boolean enabled) {
         log.info("{} rule {} org {}", enabled ? "Enabling" : "Disabling", ruleName, orgName);
         Optional<Organization> organizationOpt = get(orgName, false);
-        if (!organizationOpt.isPresent()) {
+        if (organizationOpt.isEmpty()) {
             throw new IllegalArgumentException("Cannot update api key " + ruleName + " for org " + orgName + " as the org does not exist");
         }
         Organization organization = organizationOpt.get();

@@ -37,9 +37,9 @@ import io.dataspray.umbrella.stream.common.store.impl.OrganizationStoreImpl;
 
 import java.util.Optional;
 
-public class Ingester implements Processor {
+import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_HTTP_EVENT_TYPE;
 
-    public static final String WEB_HTTP_EVENT_TYPE = "http";
+public class Ingester implements Processor {
 
     private final OrganizationStore organizationStore = new OrganizationStoreImpl(
             SingleTableProvider.get(),

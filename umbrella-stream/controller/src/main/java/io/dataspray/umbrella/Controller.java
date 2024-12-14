@@ -22,6 +22,10 @@
 
 package io.dataspray.umbrella;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.dataspray.runner.DynamoProvider;
 import io.dataspray.runner.dto.web.HttpResponse;
 import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
@@ -48,24 +52,21 @@ public class Controller implements Processor {
         Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
                 .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
-        // TODO
-        return responseBuilder.ok(responseBuilder.ok(Rules.builder()
-                .with
-                .build())).build();
+        return responseBuilder.ok(transform(organization.getRulesLastUpdated(), organization.getRulesByName())).build();
     }
 
     public HttpResponse webRulesSet(
             Rules rules,
             String orgName,
             String authorizationHeader,
-            HttpResponseBuilder<Object> responseBuilder,
+            HttpResponseBuilder<Void> responseBuilder,
             WebCoordinator coordinator
     ) {
         Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
                 .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
         try {
-            organizationStore.setRules(orgName, rules., rules.getLastUpdated());
+            organizationStore.setRules(orgName, transform(rules), rules.getLastUpdated());
         } catch (ConditionalCheckFailedException ex) {
             return responseBuilder
                     .statusCode(409)
@@ -73,5 +74,34 @@ public class Controller implements Processor {
                     .build();
         }
         return responseBuilder.ok().build();
+    }
+
+    @VisibleForTesting
+    Rules transform(Instant rulesLastUpdated, ImmutableMap<String, OrganizationStore.Rule> rulesByName) {
+        return Rules.builder()
+                .withLastUpdated(rulesLastUpdated)
+                .withItems(rulesByName.entrySet().stream()
+                        .map(e -> new Rule(
+                                e.getKey(),
+                                e.getValue().getDescription(),
+                                e.getValue().getPriority(),
+                                e.getValue().getEnabled(),
+                                e.getValue().getSource(),
+                                e.getValue().getEventTypes().asList()))
+                        .collect(ImmutableList.toImmutableList()))
+                .build();
+    }
+
+    @VisibleForTesting
+    ImmutableMap<String, OrganizationStore.Rule> transform(Rules rules) {
+        return rules.getItems().stream()
+                .collect(ImmutableMap.toImmutableMap(
+                        Rule::getName,
+                        r -> new OrganizationStore.Rule(
+                                r.getDescription().orElse(null),
+                                r.getPriority(),
+                                r.getEnabled(),
+                                r.getSource(),
+                                ImmutableSet.copyOf(r.getEventTypes()))));
     }
 }

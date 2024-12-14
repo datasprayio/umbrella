@@ -8,7 +8,10 @@
   ],
   "properties": {
     "items": {
-      "$ref": "../rule/rule.schema.json"
+      "type": "array",
+      "items": {
+        "$ref": "../rule/rule.schema.json"
+      }
     },
     "lastUpdated": {
       "type": "string",

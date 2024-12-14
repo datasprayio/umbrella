@@ -41,9 +41,8 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.function.Function;
 
-import static io.dataspray.umbrella.Ingester.WEB_HTTP_EVENT_TYPE;
+import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_HTTP_EVENT_TYPE;
 
 @Slf4j
 public class RuleRunnerImpl implements RuleRunner {
@@ -64,6 +63,7 @@ public class RuleRunnerImpl implements RuleRunner {
             .build();
     private final IdmlJson idmlJson = new DefaultIdmlJackson();
     private final Idml idml = Idml.staticBuilderWithDefaults(idmlJson).build();
+    private final IdmlUtil idmlUtil = new IdmlUtil();
 
     @Override
     public Response<Action> run(Organization org, HttpMetadata httpMetadata) {
@@ -71,19 +71,20 @@ public class RuleRunnerImpl implements RuleRunner {
                 .map(output -> Response.<Action>builder()
                         .keyOpt(output.getKey())
                         .action(Action.builder()
-                                .withRequestProcess(output.getOut().get("process").toStringValue().equalsIgnoreCase("block") ? RequestProcess.BLOCK : RequestProcess.ALLOW)
-                                .withResponseStatus(output.getOut().get("status").toLongOption().map(l -> (Long) l).orNull(null))
-                                .withResponseHeaders(parseMap(output.getOut().get("headers"), IdmlValue::toStringValue))
-                                .withRequestMetadata(parseMap(output.getOut().get("metadata"), IdmlValue::toStringValue))
-                                .withResponseCookies(parseList(output.getOut().get("cookies"), value -> new Cookie(
+                                .withRequestProcess("block".equalsIgnoreCase(idmlUtil.optionOrNull(output.getOut().get("process").toStringOption()))
+                                        ? RequestProcess.BLOCK : RequestProcess.ALLOW)
+                                .withResponseStatus(idmlUtil.<Long>optionOrNull(output.getOut().get("status").toLongOption()))
+                                .withResponseHeaders(idmlUtil.parseMap(output.getOut().get("headers"), IdmlValue::toStringValue))
+                                .withRequestMetadata(idmlUtil.parseMap(output.getOut().get("metadata"), IdmlValue::toStringValue))
+                                .withResponseCookies(idmlUtil.parseList(output.getOut().get("cookies"), value -> new Cookie(
                                         value.get("name").toStringValue(),
                                         value.get("value").toStringValue(),
-                                        value.get("maxAge").toLongOption().orNull(null),
-                                        value.get("domain").toStringOption().orNull(null),
-                                        value.get("path").toStringOption().orNull(null),
-                                        value.get("secure").toBoolOption().orNull(null),
-                                        value.get("httpOnly").toBoolOption().orNull(null),
-                                        value.get("sameSite").toStringOption().orNull(null)
+                                        idmlUtil.<Long>optionOrNull(value.get("maxAge").toLongOption()),
+                                        idmlUtil.optionOrNull(value.get("domain").toStringOption()),
+                                        idmlUtil.optionOrNull(value.get("path").toStringOption()),
+                                        idmlUtil.<Boolean>optionOrNull(value.get("secure").toBoolOption()),
+                                        idmlUtil.<Boolean>optionOrNull(value.get("httpOnly").toBoolOption()),
+                                        idmlUtil.optionOrNull(value.get("sameSite").toStringOption())
                                 )))
                                 .build())
                         .build())
@@ -95,7 +96,7 @@ public class RuleRunnerImpl implements RuleRunner {
         return runInternal(org, eventType, metadata)
                 .map(output -> Response.<ImmutableMap<String, String>>builder()
                         .keyOpt(output.getKey())
-                        .action(parseMap(output.getOut(), IdmlValue::toStringValue))
+                        .action(idmlUtil.parseMap(output.getOut(), IdmlValue::toStringValue))
                         .build())
                 .orElse(RESPONSE_CUSTOM_DEFAULT);
     }
@@ -115,10 +116,12 @@ public class RuleRunnerImpl implements RuleRunner {
         for (CompiledRule rule : compiledRules.getRules()) {
 
             if (!rule.isEnabled()) {
+                log.debug("Skipping rule {}, disabled", rule.getRuleName());
                 continue;
             }
 
             if (!rule.getEventTypes().contains(eventType)) {
+                log.debug("Skipping rule {}, unrelated event {}", rule.getRuleName(), eventType);
                 continue;
             }
 
@@ -142,6 +145,8 @@ public class RuleRunnerImpl implements RuleRunner {
                 log.error("Error evaluating rule {}", rule.getRuleName(), ex);
                 continue;
             }
+            log.debug("Executed rule {}", rule.getRuleName());
+            log.trace("Output of rule {}: {}", rule.getRuleName(), outputRaw);
 
             // Parse output
             try {
@@ -152,6 +157,7 @@ public class RuleRunnerImpl implements RuleRunner {
             }
 
             if (output.get().isStop()) {
+                log.debug("Stopping after rule {} signalled stop", rule.getRuleName());
                 break;
             }
 
@@ -159,6 +165,7 @@ public class RuleRunnerImpl implements RuleRunner {
             input = buildInput(input, output.get());
         }
 
+        log.debug("All rules executed");
         return output;
     }
 
@@ -192,7 +199,7 @@ public class RuleRunnerImpl implements RuleRunner {
                 output.get("state"),
                 output.get("out"),
                 output.get("stop").isTrueValue(),
-                Optional.<String>ofNullable(output.get("key").toStringOption().orNull(null))
+                idmlUtil.<String>optionToOptional(output.get("key").toStringOption())
                         .or(() -> previousOutput.flatMap(RuleOutput::getKey)));
     }
 
@@ -227,24 +234,6 @@ public class RuleRunnerImpl implements RuleRunner {
         } catch (DocumentParseException ex) {
             throw new RuntimeException(ex);
         }
-    }
-
-    private <T> ImmutableMap<String, T> parseMap(IdmlValue input, Function<IdmlValue, T> keyMapper) {
-        ImmutableMap.Builder<String, T> builder = ImmutableMap.builder();
-        input.keys().iterator().foreach(key -> {
-            builder.put(key.toStringValue(), keyMapper.apply(input.get(key)));
-            return null;
-        });
-        return builder.build();
-    }
-
-    private <T> ImmutableList<T> parseList(IdmlValue input, Function<IdmlValue, T> objMapper) {
-        ImmutableList.Builder<T> builder = ImmutableList.builder();
-        input.iterator().foreach(obj -> {
-            builder.add(objMapper.apply(input.get(obj)));
-            return null;
-        });
-        return builder.build();
     }
 
     @Value

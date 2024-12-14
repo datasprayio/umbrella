@@ -36,8 +36,7 @@ import static io.dataspray.singletable.TableType.Primary;
 
 public interface OrganizationStore {
 
-    String WEB_EVENT_TYPE = "web";
-
+    String WEB_HTTP_EVENT_TYPE = "web";
     Mode DEFAULT_MODE = Mode.MONITOR;
     long DEFAULT_AWAIT_TIMEOUT_MS = 2_000;
 
@@ -73,9 +72,7 @@ public interface OrganizationStore {
 
     void delete(String orgName);
 
-    Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName);
-
-    Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, Instant expectedLastUpdated);
+    Organization setRules(String orgName, ImmutableMap<String, Rule> rulesByName, Optional<Instant> expectedLastUpdatedOpt);
 
     Organization setRuleEnabled(String orgName, String ruleName, boolean enabled) throws ConditionalCheckFailedException;
 

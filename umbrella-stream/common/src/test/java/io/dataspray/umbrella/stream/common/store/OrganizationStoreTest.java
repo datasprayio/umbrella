@@ -37,7 +37,7 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
 import java.time.Instant;
 import java.util.Optional;
 
-import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_EVENT_TYPE;
+import static io.dataspray.umbrella.stream.common.store.OrganizationStore.WEB_HTTP_EVENT_TYPE;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
@@ -161,7 +161,7 @@ class OrganizationStoreTest extends AbstractDynamoTest {
                                 .priority(42L)
                                 .enabled(true)
                                 .source("rule 1 source")
-                                .eventTypes(ImmutableSet.of(WEB_EVENT_TYPE, "custom"))
+                                .eventTypes(ImmutableSet.of(WEB_HTTP_EVENT_TYPE, "custom"))
                                 .build(),
                         "my rule 2", Rule.builder()
                                 .description("description 2")
@@ -170,11 +170,11 @@ class OrganizationStoreTest extends AbstractDynamoTest {
                                 .source("rule 2 source")
                                 .eventTypes(ImmutableSet.of("custom"))
                                 .build()),
-                org.getRulesLastUpdated());
+                Optional.of(org.getRulesLastUpdated()));
         assertTrue(org.getRulesLastUpdated().isAfter(lastUpdatedAtCreation));
 
         try {
-            store.setRules("my org", ImmutableMap.of(), lastUpdatedAtCreation);
+            store.setRules("my org", ImmutableMap.of(), Optional.of(lastUpdatedAtCreation));
             fail();
         } catch (ConditionalCheckFailedException ignored) {
         }
@@ -184,5 +184,8 @@ class OrganizationStoreTest extends AbstractDynamoTest {
         assertTrue(org.getRulesByName().get("my rule 2").getEnabled());
         org = store.setRuleEnabled("my org", "my rule 1", true);
         assertTrue(org.getRulesByName().get("my rule 1").getEnabled());
+
+        org = store.setRules("my org", ImmutableMap.of(), Optional.empty());
+        assertEquals(ImmutableMap.of(), org.getRulesByName());
     }
 }
