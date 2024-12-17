@@ -70,17 +70,7 @@
         </dependency>
         <dependency>
             <groupId>io.idml</groupId>
-            <artifactId>idml-utils_2.13</artifactId>
-            <version>${idml.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.idml</groupId>
             <artifactId>idml-hashing_2.13</artifactId>
-            <version>${idml.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.idml</groupId>
-            <artifactId>idml-geo_2.13</artifactId>
             <version>${idml.version}</version>
         </dependency>
 
@@ -88,6 +78,13 @@
             <groupId>io.dataspray</groupId>
             <artifactId>single-table</artifactId>
             <version>2.4.0</version>
+            <exclusions>
+                <!-- Exclude due to its size, fixed and can be removed in 2.4.1+ -->
+                <exclusion>
+                    <groupId>software.amazon.awscdk</groupId>
+                    <artifactId>aws-cdk-lib</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Logging -->

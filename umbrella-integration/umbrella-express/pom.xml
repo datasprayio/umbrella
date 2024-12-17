@@ -32,43 +32,10 @@
     </parent>
 
     <groupId>io.dataspray.umbrella.integration</groupId>
-    <artifactId>umbrella-tomcat</artifactId>
+    <artifactId>umbrella-express</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Umbrella Integration Tomcat</name>
+    <name>Umbrella Integration Express</name>
     <url>https://dataspray.io</url>
-
-    <properties>
-        <java.version>11</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-    </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.dataspray.umbrella.integration</groupId>
-            <artifactId>umbrella-java</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <version>6.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>5.12.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>5.10.3</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 </project>

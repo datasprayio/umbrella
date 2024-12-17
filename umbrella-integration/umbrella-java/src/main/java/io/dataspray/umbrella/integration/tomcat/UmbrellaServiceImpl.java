@@ -23,10 +23,7 @@
 package io.dataspray.umbrella.integration.tomcat;
 
 import com.google.gson.*;
-import io.dataspray.umbrella.client.ApiClient;
-import io.dataspray.umbrella.client.ApiException;
-import io.dataspray.umbrella.client.DefaultApi;
-import io.dataspray.umbrella.client.JSON;
+import io.dataspray.umbrella.client.*;
 import io.dataspray.umbrella.client.model.*;
 import okhttp3.OkHttpClient;
 
@@ -48,7 +45,8 @@ class UmbrellaServiceImpl implements UmbrellaService {
     static final HttpAction DEFAULT_ALLOW_ACTION = new HttpAction()
             .requestProcess(RequestProcess.ALLOW);
     private String orgName;
-    private DefaultApi api;
+    private HealthApi healthApi;
+    private IngestApi ingestApi;
     private String nodeIdentifier;
     volatile Config config = new Config()
             .mode(OperationMode.DISABLED);
@@ -63,7 +61,9 @@ class UmbrellaServiceImpl implements UmbrellaService {
 
         this.orgName = orgName;
         this.nodeIdentifier = constructNodeIdentifier(nodeIdentifierParts);
-        this.api = initApi(apiKey, endpointUrl);
+        ApiClient apiClient = initApiClient(apiKey, endpointUrl);
+        this.healthApi = new HealthApi(apiClient);
+        this.ingestApi = new IngestApi(apiClient);
 
         try {
             doPing();
@@ -92,7 +92,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
         return config.getCollectAdditionalHeaders() == null ? Collections.emptyList() : config.getCollectAdditionalHeaders();
     }
 
-    private DefaultApi initApi(String apiKey, Optional<String> endpointUrl) {
+    private ApiClient initApiClient(String apiKey, Optional<String> endpointUrl) {
         // Add Gson adapter for Instant since we are using it instead of OffsetDateTime
         JSON.setGson(JSON.getGson().newBuilder()
                 .registerTypeAdapter(Instant.class, new InstantTypeConverter())
@@ -101,7 +101,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
         apiClient.setApiKeyPrefix("apikey");
         apiClient.setApiKey(apiKey);
         endpointUrl.ifPresent(apiClient::setBasePath);
-        return new DefaultApi(apiClient);
+        return apiClient;
     }
 
     @Override
@@ -137,7 +137,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
 
     private HttpEventResponse doHttpEvent(HttpMetadata data, OperationMode currentMode) throws ApiException {
         try {
-            HttpEventResponse httpEventResponse = api.httpEvent(orgName, new HttpEventRequest()
+            HttpEventResponse httpEventResponse = ingestApi.httpEvent(orgName, new HttpEventRequest()
                     .httpMetadata(data)
                     .nodeId(nodeIdentifier)
                     .currentMode(currentMode));
@@ -153,7 +153,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
     }
 
     private void doPing() throws ApiException {
-        PingResponse nodeInitializeResponse = api.nodePing(orgName, new PingRequest()
+        PingResponse nodeInitializeResponse = healthApi.nodePing(orgName, new PingRequest()
                 .nodeId(this.nodeIdentifier));
         log.log(Level.FINEST, "Successfully pinged Umbrella");
         onNewConfig(nodeInitializeResponse.getConfig());
@@ -171,7 +171,10 @@ class UmbrellaServiceImpl implements UmbrellaService {
             long callTimeout = newConfig.getTimeoutMs() == null || newConfig.getMode() != OperationMode.BLOCKING
                     ? 0L
                     : newConfig.getTimeoutMs();
-            api.getApiClient().setHttpClient(new OkHttpClient.Builder()
+            healthApi.getApiClient().setHttpClient(new OkHttpClient.Builder()
+                    .callTimeout(callTimeout, TimeUnit.MILLISECONDS)
+                    .build());
+            ingestApi.getApiClient().setHttpClient(new OkHttpClient.Builder()
                     .callTimeout(callTimeout, TimeUnit.MILLISECONDS)
                     .build());
         }

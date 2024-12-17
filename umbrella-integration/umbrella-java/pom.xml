@@ -1,0 +1,197 @@
+<!--
+  ~ Copyright 2024 Matus Faro
+  ~
+  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+  ~ of this software and associated documentation files (the "Software"), to deal
+  ~ in the Software without restriction, including without limitation the rights
+  ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the Software is
+  ~ furnished to do so, subject to the following conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be included in all
+  ~ copies or substantial portions of the Software.
+  ~
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  ~ SOFTWARE.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>umbrella-integration-parent</artifactId>
+        <groupId>io.dataspray.umbrella</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>io.dataspray.umbrella.integration</groupId>
+    <artifactId>umbrella-java</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>Umbrella Integration Java Client</name>
+    <url>https://dataspray.io</url>
+
+    <properties>
+        <java.version>11</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <!-- Matches OpenApi generated pom.xml -->
+        <okhttp.version>4.12.0</okhttp.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <!-- Matches OpenApi generated pom.xml -->
+            <version>2.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <!-- Matches OpenApi generated pom.xml -->
+            <version>3.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.14</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <!-- Matches OpenApi generated pom.xml -->
+            <version>2.10.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.gsonfire</groupId>
+            <artifactId>gson-fire</artifactId>
+            <!-- Matches OpenApi generated pom.xml -->
+            <version>1.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>${okhttp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>logging-interceptor</artifactId>
+            <version>${okhttp.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.12.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>${okhttp.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.2.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>io.dataspray.umbrella</groupId>
+                                    <artifactId>umbrella-api</artifactId>
+                                    <classifier>openapi</classifier>
+                                    <version>0.0.1-SNAPSHOT</version>
+                                    <type>tar.gz</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/unpacked-resources/openapi
+                                    </outputDirectory>
+                                    <includes>*</includes>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.9.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-client</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <!-- Disables spec validation, for "existingJavaType" -->
+                            <skipValidateSpec>true</skipValidateSpec>
+                            <inputSpec>${project.build.directory}/unpacked-resources/openapi/umbrella-api.yaml
+                            </inputSpec>
+                            <generatorName>java</generatorName>
+                            <ignoreFileOverride>
+                                ${project.basedir}/src/main/openapi/client/.openapi-generator-ignore
+                            </ignoreFileOverride>
+                            <templateDirectory>src/main/openapi/client</templateDirectory>
+                            <typeMappings>OffsetDateTime=Instant</typeMappings>
+                            <importMappings>java.time.OffsetDateTime=java.time.Instant</importMappings>
+                            <additionalProperties>
+                                <additionalProperty>modelPackage=io.dataspray.umbrella.client.model</additionalProperty>
+                                <additionalProperty>apiPackage=io.dataspray.umbrella.client</additionalProperty>
+                                <additionalProperty>invokerPackage=io.dataspray.umbrella.client</additionalProperty>
+                                <additionalProperty>groupId=io.dataspray.umbrella</additionalProperty>
+                                <additionalProperty>artifactId=client</additionalProperty>
+                                <additionalProperty>dateLibrary=java8</additionalProperty>
+                                <additionalProperty>disableHtmlEscaping=true</additionalProperty>
+                                <additionalProperty>hideGenerationTimestamp=true</additionalProperty>
+                                <additionalProperty>useBeanValidation=true</additionalProperty>
+                                <additionalProperty>serializationLibrary=gson</additionalProperty>
+                                <additionalProperty>generateConstructorWithAllArgs=true</additionalProperty>
+                                <additionalProperty>removeEnumValuePrefix=false</additionalProperty>
+                                <additionalProperty>sourceFolder=target/main/java</additionalProperty>
+                            </additionalProperties>
+                            <output>${project.build.directory}/generated-sources/client</output>
+                            <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <sourceFolder>src/main/java</sourceFolder>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

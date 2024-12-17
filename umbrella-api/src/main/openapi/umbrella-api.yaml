@@ -287,6 +287,7 @@ paths:
   /org/{org}/node/ping:
     post:
       operationId: nodePing
+      tags: [ Health ]
       parameters:
         - name: org
           in: path
@@ -309,6 +310,7 @@ paths:
   /org/{org}/event/http:
     post:
       operationId: httpEvent
+      tags: [ Ingest ]
       parameters:
         - name: org
           in: path
@@ -331,6 +333,7 @@ paths:
   /org/{org}/event/{eventType}:
     post:
       operationId: customEvent
+      tags: [ Ingest ]
       parameters:
         - name: org
           in: path

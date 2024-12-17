@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/umbrella-stream/controller/controller.iml" filepath="$PROJECT_DIR$/umbrella-stream/controller/controller.iml" />
+      <module fileurl="file://$PROJECT_DIR$/umbrella-integration/umbrella-java/umbrella-java.iml" filepath="$PROJECT_DIR$/umbrella-integration/umbrella-java/umbrella-java.iml" />
       <module fileurl="file://$PROJECT_DIR$/umbrella-parent.iml" filepath="$PROJECT_DIR$/umbrella-parent.iml" />
     </modules>
   </component>

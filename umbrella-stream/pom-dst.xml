@@ -27,9 +27,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>umbrella-parent</artifactId>
+        <artifactId>umbrella-stream-parent</artifactId>
         <groupId>io.dataspray.umbrella</groupId>
         <version>0.0.1-SNAPSHOT</version>
+        <relativePath>./pom.xml</relativePath>
     </parent>
 
     <artifactId>umbrella-stream-dst</artifactId>
@@ -41,6 +42,7 @@
 
     <properties>
         <dst.binary>dst</dst.binary>
+        <dst.organization>smotana</dst.organization>
     </properties>
 
     <build>
@@ -126,7 +128,10 @@
                         <configuration>
                             <executable>${dst.binary}</executable>
                             <arguments>
+                                <argument>run</argument>
                                 <argument>deploy</argument>
+                                <argument>--organization</argument>
+                                <argument>${dst.organization}</argument>
                             </arguments>
                         </configuration>
                     </execution>

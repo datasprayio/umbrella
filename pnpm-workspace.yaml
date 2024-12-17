@@ -1,0 +1,4 @@
+# Allow locally installed packages to be used in the workspace similar to Maven local cache
+packages:
+  - 'umbrella-integration/umbrella-typescript'
+  - 'umbrella-integration/umbrella-express'
