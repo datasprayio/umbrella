@@ -41,8 +41,8 @@
     <url>https://dataspray.io</url>
 
     <properties>
-        <dst.binary>dst</dst.binary>
-        <dst.organization>smotana</dst.organization>
+        <dstBinary>dst</dstBinary>
+        <dstProfile>smotana-staging</dstProfile>
     </properties>
 
     <build>
@@ -87,7 +87,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>${dst.binary}</executable>
+                            <executable>${dstBinary}</executable>
                             <arguments>
                                 <argument>clean</argument>
                             </arguments>
@@ -100,7 +100,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>${dst.binary}</executable>
+                            <executable>${dstBinary}</executable>
                             <arguments>
                                 <argument>generate</argument>
                             </arguments>
@@ -113,7 +113,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>${dst.binary}</executable>
+                            <executable>${dstBinary}</executable>
                             <arguments>
                                 <argument>install</argument>
                             </arguments>
@@ -126,12 +126,12 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>${dst.binary}</executable>
+                            <executable>${dstBinary}</executable>
                             <arguments>
                                 <argument>run</argument>
                                 <argument>deploy</argument>
-                                <argument>--organization</argument>
-                                <argument>${dst.organization}</argument>
+                                <argument>--profile</argument>
+                                <argument>${dstProfile}</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -144,7 +144,7 @@
         <profile>
             <id>dst-snapshot</id>
             <properties>
-                <dst.binary>dst-snapshot</dst.binary>
+                <dstBinary>dst-snapshot</dstBinary>
             </properties>
         </profile>
     </profiles>
