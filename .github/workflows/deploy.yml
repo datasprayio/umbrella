@@ -64,10 +64,14 @@ jobs:
             </servers>
           </settings>
           EOF
-      - name: Login to DataSpray
+      - name: Login to DataSpray (Production)
+        if: ${{ github.event.inputs.environment == 'production' }}
         run: |
-          dst env login --profile=production ${{ github.event.inputs.environment == 'production' && '--default' || '' }} --apiKey=${{ secrets.DST_PRODUCTION_API_KEY }} --organization=${{ secrets.DST_PRODUCTION_ORG_NAME }} --skipCheck
-          dst env login --profile=staging    ${{ github.event.inputs.environment != 'production' && '--default' || '' }} --apiKey=${{ secrets.DST_STAGING_API_KEY }}    --organization=${{ secrets.DST_STAGING_ORG_NAME }}    --skipCheck --endpoint=https://api.staging.dataspray.io
+          dst env login --profile=production --default --apiKey=${{ secrets.DST_PRODUCTION_API_KEY }} --organization=${{ secrets.DST_PRODUCTION_ORG_NAME }} --skipCheck
+      - name: Login to DataSpray (Staging)
+        if: ${{ github.event.inputs.environment != 'production' }}
+        run: |
+          dst env login --profile=staging --default --apiKey=${{ secrets.DST_STAGING_API_KEY }} --organization=${{ secrets.DST_STAGING_ORG_NAME }} --skipCheck --endpoint=https://api.staging.dataspray.io
 
       - name: Maven build
         timeout-minutes: 30
