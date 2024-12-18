@@ -147,5 +147,17 @@
                 <dstBinary>dst-snapshot</dstBinary>
             </properties>
         </profile>
+        <profile>
+            <id>production</id>
+            <properties>
+                <dstProfile>smotana</dstProfile>
+            </properties>
+        </profile>
+        <profile>
+            <id>staging</id>
+            <properties>
+                <dstProfile>smotana-staging</dstProfile>
+            </properties>
+        </profile>
     </profiles>
 </project>
