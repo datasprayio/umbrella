@@ -28,7 +28,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="starter-parent" target="21" />
+      <module name="ingester" target="21" />
       <module name="umbrella" target="21" />
       <module name="umbrella-integration" target="1.8" />
       <module name="umbrella-server (1)" target="1.8" />

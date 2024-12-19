@@ -77,14 +77,7 @@
         <dependency>
             <groupId>io.dataspray</groupId>
             <artifactId>single-table</artifactId>
-            <version>2.4.0</version>
-            <exclusions>
-                <!-- Exclude due to its size, fixed and can be removed in 2.4.1+ -->
-                <exclusion>
-                    <groupId>software.amazon.awscdk</groupId>
-                    <artifactId>aws-cdk-lib</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>2.4.2</version>
         </dependency>
 
         <!-- Logging -->

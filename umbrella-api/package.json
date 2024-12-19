@@ -2,6 +2,7 @@
   "name": "umbrella-api-json-schema",
   "version": "1.0.0",
   "description": "JSON schema for Umbrella API",
+  "type": "module",
   "scripts": {
     "generate-json-schema": "../node/node src/main/javascript/generateJsonSchema.js src/main/openapi/umbrella-api.yaml target/generated-resources/json-schema/"
   },

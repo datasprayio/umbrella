@@ -20,10 +20,10 @@
  * SOFTWARE.
  */
 
-const $RefParser = require("@apidevtools/json-schema-ref-parser");
-const {openapiSchemaToJsonSchema} = require('@openapi-contrib/openapi-schema-to-json-schema');
-const yaml = require('js-yaml');
-const fs = require('fs');
+import $RefParser from "@apidevtools/json-schema-ref-parser";
+import {openapiSchemaToJsonSchema} from '@openapi-contrib/openapi-schema-to-json-schema';
+import yaml from 'js-yaml';
+import fs from 'fs';
 
 // Read in two arguments, one for input file and one for output directory
 if (process.argv.length !== 4) {
