@@ -6,7 +6,7 @@
   "scripts": {
     "generate-json-schema": "../node/node src/main/javascript/generateJsonSchema.js src/main/openapi/umbrella-api.yaml target/generated-resources/json-schema/"
   },
-  "dependencies": {
+  "devDependencies": {
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
     "@apidevtools/json-schema-ref-parser": "^11.7.2",
     "js-yaml": "^4.1.0"
