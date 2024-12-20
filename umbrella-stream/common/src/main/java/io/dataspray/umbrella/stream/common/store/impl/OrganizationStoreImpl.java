@@ -49,6 +49,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Slf4j
 public class OrganizationStoreImpl implements OrganizationStore {
 
+    private static final String SUPER_ADMIN_ORG_NAME = "dataspray";
     private static final Duration ORG_CACHE_TTL = Duration.ofMinutes(5);
     private final DynamoDbClient dynamo;
     private final TableSchema<Organization> schemaOrganization;
@@ -85,6 +86,7 @@ public class OrganizationStoreImpl implements OrganizationStore {
     public Optional<Organization> get(String orgName, boolean useCache) {
         if (useCache) {
             Optional<Organization> orgOpt = orgCache.getIfPresent(orgName);
+            //noinspection OptionalAssignedToNull
             if (orgOpt != null) {
                 return orgOpt;
             }
@@ -111,6 +113,16 @@ public class OrganizationStoreImpl implements OrganizationStore {
     @Override
     public Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader) {
         return getIfAuthorizedForAdmin(orgName, apiKeyValueOrAuthHeader, ApiKey::getIsAdmin);
+    }
+
+    @Override
+    public boolean checkIfAuthorizedForSuperAdmin(@Nullable String apiKeyValueOrAuthHeader) {
+        if (get(SUPER_ADMIN_ORG_NAME, true).isEmpty()) {
+            // If the super admin org doesn't exist, then no one can be authorized for it, this is likely a call to
+            // create such organization, therefore allow it.
+            return true;
+        }
+        return getIfAuthorizedForAdmin(SUPER_ADMIN_ORG_NAME, apiKeyValueOrAuthHeader).isPresent();
     }
 
     private Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader, Predicate<ApiKey> actionPredicate) {

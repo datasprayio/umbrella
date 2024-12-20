@@ -73,7 +73,7 @@ export class UmbrellaClient {
 
     async uploadCode(presignedUrl: string, file: Blob) {
         const response = await (this.config.fetchApi || fetch)(presignedUrl, {
-            method: 'PUT',
+            method: PUT,
             body: file,
             headers: {
                 'Content-Type': 'application/zip'

@@ -51,7 +51,7 @@ javaProcessors:
       endpoints:
         - name: "nodePing"
           contentTypes: [ "application/json" ]
-          method: 'POST'
+          method: POST
           path: "/org/{org}/node/ping"
           pathParams:
             - name: org
@@ -62,7 +62,7 @@ javaProcessors:
           responseDataFormatName: PingResponse
         - name: "httpEvent"
           contentTypes: [ "application/json" ]
-          method: 'POST'
+          method: POST
           path: "/org/{org}/event/http"
           pathParams:
             - name: org
@@ -73,7 +73,7 @@ javaProcessors:
           responseDataFormatName: HttpEventResponse
         - name: "event"
           contentTypes: [ "application/json" ]
-          method: 'POST'
+          method: POST
           path: "/org/{org}/event/{eventType}"
           pathParams:
             - name: org
@@ -90,9 +90,53 @@ javaProcessors:
     web:
       isPublic: true
       endpoints:
+
+        - name: "orgCreate"
+          contentTypes: [ "application/json" ]
+          method: PUT
+          path: "/org/{org}"
+          pathParams:
+            - name: org
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          responseDataFormatName: ApiKey
+        - name: "apiKeyCreate"
+          contentTypes: [ "application/json" ]
+          method: POST
+          path: "/org/{org}/apikey"
+          pathParams:
+            - name: org
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          requestDataFormatName: ApiKeyRequest
+          responseDataFormatName: ApiKey
+        - name: "apiKeyDelete"
+          contentTypes: [ "application/json" ]
+          method: DELETE
+          path: "/org/{org}/apikey"
+          pathParams:
+            - name: org
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          requestDataFormatName: ApiKeyRequest
+          responseDataFormatName: ApiKey
+        - name: "apiKeyDelete"
+          contentTypes: [ "application/json" ]
+          method: DELETE
+          path: "/org/{org}/apikey"
+          pathParams:
+            - name: org
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          requestDataFormatName: ApiKeyRequest
+
         - name: "rulesList"
           contentTypes: [ "application/json" ]
-          method: 'GET'
+          method: GET
           path: "/org/{org}/rules"
           pathParams:
             - name: org
@@ -102,7 +146,7 @@ javaProcessors:
           responseDataFormatName: Rules
         - name: "rulesSet"
           contentTypes: [ "application/json" ]
-          method: 'PUT'
+          method: PUT
           path: "/org/{org}/rules"
           pathParams:
             - name: org

@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.Optional;
 
+import static io.dataspray.singletable.TableType.Gsi;
 import static io.dataspray.singletable.TableType.Primary;
 
 public interface OrganizationStore {
@@ -49,6 +50,8 @@ public interface OrganizationStore {
     Optional<Organization> getIfAuthorizedForIngestEvent(String orgName, @Nullable String apiKeyValueOrAuthHeader, String eventType);
 
     Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader);
+
+    boolean checkIfAuthorizedForSuperAdmin(@Nullable String apiKeyValueOrAuthHeader);
 
     Organization setMode(String orgName, Mode mode);
 
@@ -81,6 +84,7 @@ public interface OrganizationStore {
     @EqualsAndHashCode
     @Builder(toBuilder = true)
     @DynamoTable(type = Primary, partitionKeys = "orgName", rangePrefix = "org")
+    @DynamoTable(type = Gsi, indexNumber = 1, shardKeys = "orgName", shardCount = 10, rangePrefix = "allOrgs", rangeKeys = "orgName")
     class Organization {
 
         @NonNull

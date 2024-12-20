@@ -43,6 +43,20 @@ public class Controller implements Processor {
             SingleTableProvider.get(),
             DynamoProvider.get());
 
+    @Override
+    public HttpResponse webOrgCreate(
+            String orgName,
+            String authorizationHeader,
+            HttpResponseBuilder<Void> responseBuilder,
+            WebCoordinator coordinator
+    ) {
+        if (!organizationStore.checkIfAuthorizedForSuperAdmin(authorizationHeader)) {
+            return responseBuilder.forbidden().build();
+        }
+
+        return responseBuilder.statusCode(201).build();
+    }
+
     public HttpResponse webRulesList(
             String orgName,
             String authorizationHeader,
