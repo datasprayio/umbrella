@@ -27,11 +27,11 @@
     <parent>
         <groupId>io.dataspray.umbrella</groupId>
         <artifactId>umbrella-stream-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.2</version>
     </parent>
 
     <artifactId>umbrella-stream-common</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2</version>
     <packaging>jar</packaging>
 
     <name>Umbrella Stream Common</name>

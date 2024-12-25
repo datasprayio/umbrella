@@ -28,12 +28,12 @@
     <parent>
         <artifactId>umbrella-integration-parent</artifactId>
         <groupId>io.dataspray.umbrella</groupId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.2</version>
     </parent>
 
     <groupId>io.dataspray.umbrella.integration</groupId>
     <artifactId>umbrella-express</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2</version>
     <packaging>jar</packaging>
 
     <name>Umbrella Integration Express</name>

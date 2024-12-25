@@ -29,12 +29,12 @@
     <parent>
         <artifactId>umbrella-parent</artifactId>
         <groupId>io.dataspray.umbrella</groupId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.2</version>
     </parent>
 
     <groupId>io.dataspray.umbrella</groupId>
     <artifactId>umbrella-integration-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2</version>
     <packaging>pom</packaging>
 
     <name>Umbrella Integration Parent</name>
