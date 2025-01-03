@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -220,32 +220,33 @@ public class OrganizationStoreImpl implements OrganizationStore {
     }
 
     @Override
-    public Organization createApiKeyForAdmin(String orgName, String apiKeyName) {
+    public ApiKey createApiKeyForAdmin(String orgName, String apiKeyName) {
         return createApiKey(orgName, apiKeyName, true, ImmutableSet.of());
     }
 
     @Override
-    public Organization createApiKeyForIngester(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes) {
+    public ApiKey createApiKeyForIngester(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes) {
         return createApiKey(orgName, apiKeyName, false, allowedEventTypes);
     }
 
-    private Organization createApiKey(String orgName, String apiKeyName, boolean isAdmin, ImmutableSet<String> allowedEventTypes) {
+    private ApiKey createApiKey(String orgName, String apiKeyName, boolean isAdmin, ImmutableSet<String> allowedEventTypes) {
         log.info("Creating api key {} for {} admin {} allowedEventTypes {}", apiKeyName, orgName, isAdmin, allowedEventTypes);
         checkArgument(!apiKeyName.isEmpty(), "apiKeyName cannot be empty");
         apiKeyName = apiKeyName.replace("[^a-zA-Z]", "_");
+        ApiKey apiKey = new ApiKey(
+                KeygenUtil.generateSecureApiKey(),
+                true,
+                isAdmin,
+                allowedEventTypes);
         UpdateBuilder<Organization> updateBuilder = schemaOrganization.update();
         Organization org = updateBuilder
                 .key(ImmutableMap.of("orgName", orgName))
                 .conditionExists()
                 .set(ImmutableList.of("apiKeysByName", apiKeyName),
-                        new ApiKey(
-                                KeygenUtil.generateSecureApiKey(),
-                                true,
-                                isAdmin,
-                                allowedEventTypes))
+                        apiKey)
                 .executeGetUpdated(dynamo);
         orgCache.put(orgName, Optional.of(org));
-        return org;
+        return apiKey;
     }
 
     @Override

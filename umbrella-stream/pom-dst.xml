@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-  ~ Copyright 2024 Matus Faro
+  ~ Copyright 2025 Matus Faro
   ~
   ~ Permission is hereby granted, free of charge, to any person obtaining a copy
   ~ of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,7 @@
                                     <groupId>io.dataspray.umbrella</groupId>
                                     <artifactId>umbrella-api</artifactId>
                                     <classifier>json-schema</classifier>
-                                    <version>0.0.1-SNAPSHOT</version>
+                                    <version>0.0.2</version>
                                     <type>tar.gz</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/unpacked-resources/json-schema

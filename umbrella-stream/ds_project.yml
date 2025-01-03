@@ -24,6 +24,12 @@ dataFormats:
     serde: JSON
   - name: Rule
     serde: JSON
+  - name: ApiKeyCreateRequest
+    serde: JSON
+  - name: ApiKeyDeleteRequest
+    serde: JSON
+  - name: ApiKey
+    serde: JSON
 datasprayStores:
   - name: "ds-store"
     streams:
@@ -99,18 +105,19 @@ javaProcessors:
             - name: org
           headers:
             - name: "Authorization"
-              isRequired: true
+              isRequired: false
           responseDataFormatName: ApiKey
+
         - name: "apiKeyCreate"
           contentTypes: [ "application/json" ]
-          method: POST
+          method: PUT
           path: "/org/{org}/apikey"
           pathParams:
             - name: org
           headers:
             - name: "Authorization"
               isRequired: true
-          requestDataFormatName: ApiKeyRequest
+          requestDataFormatName: ApiKeyCreateRequest
           responseDataFormatName: ApiKey
         - name: "apiKeyDelete"
           contentTypes: [ "application/json" ]
@@ -121,18 +128,7 @@ javaProcessors:
           headers:
             - name: "Authorization"
               isRequired: true
-          requestDataFormatName: ApiKeyRequest
-          responseDataFormatName: ApiKey
-        - name: "apiKeyDelete"
-          contentTypes: [ "application/json" ]
-          method: DELETE
-          path: "/org/{org}/apikey"
-          pathParams:
-            - name: org
-          headers:
-            - name: "Authorization"
-              isRequired: true
-          requestDataFormatName: ApiKeyRequest
+          requestDataFormatName: ApiKeyDeleteRequest
 
         - name: "rulesList"
           contentTypes: [ "application/json" ]

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -73,7 +73,7 @@ export class UmbrellaClient {
 
     async uploadCode(presignedUrl: string, file: Blob) {
         const response = await (this.config.fetchApi || fetch)(presignedUrl, {
-            method: PUT,
+            method: 'PUT',
             body: file,
             headers: {
                 'Content-Type': 'application/zip'
@@ -83,6 +83,7 @@ export class UmbrellaClient {
             throw new Error(`Failed with status ${response.status} to upload to S3: ${await response.text()}`);
         }
     }
+
 
     /**
      * Set the API key to be used by the client. Takes effect immediately for existing clients.

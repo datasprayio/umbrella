@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -71,8 +71,7 @@ public class IngesterTest extends AbstractTest {
         ruleRunner = new RuleRunnerImpl();
 
         org = organizationStore.create("org1");
-        apiKey = organizationStore.createApiKeyForIngester(org.getOrgName(), "apikey1", ImmutableSet.of())
-                .getApiKeysByName().get("apikey1");
+        apiKey = organizationStore.createApiKeyForIngester(org.getOrgName(), "apikey1", ImmutableSet.of());
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,16 +47,64 @@ public class Controller implements Processor {
     public HttpResponse webOrgCreate(
             String orgName,
             String authorizationHeader,
-            HttpResponseBuilder<Void> responseBuilder,
+            HttpResponseBuilder<ApiKey> responseBuilder,
             WebCoordinator coordinator
     ) {
         if (!organizationStore.checkIfAuthorizedForSuperAdmin(authorizationHeader)) {
             return responseBuilder.forbidden().build();
         }
 
-        return responseBuilder.statusCode(201).build();
+        Organization organization = organizationStore.create(orgName);
+        OrganizationStore.ApiKey apiKey = organizationStore.createApiKeyForAdmin(organization.getOrgName(), "default");
+
+        return responseBuilder.ok(ApiKey.builder()
+                .withApiKeyValue(apiKey.getApiKeyValue()).build()).build();
     }
 
+    @Override
+    public HttpResponse webApiKeyCreate(
+            ApiKeyCreateRequest request,
+            String orgName,
+            String authorizationHeader,
+            HttpResponseBuilder<ApiKey> responseBuilder,
+            WebCoordinator coordinator
+    ) {
+        Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
+
+        if (Type.ADMIN.equals(request.getType()) && request.getAllowedEventTypes().isPresent()) {
+            return responseBuilder.statusCode(400).body("Admin API key cannot be restricted to event types").build();
+        }
+
+        OrganizationStore.ApiKey apiKey = switch (request.getType()) {
+            case ADMIN -> organizationStore.createApiKeyForAdmin(
+                    organization.getOrgName(), request.getName());
+            case INGESTER -> organizationStore.createApiKeyForIngester(
+                    organization.getOrgName(), request.getName(), request.getAllowedEventTypes().map(ImmutableSet::copyOf).orElse(ImmutableSet.of()));
+        };
+
+
+        return responseBuilder.ok(ApiKey.builder()
+                .withApiKeyValue(apiKey.getApiKeyValue()).build()).build();
+    }
+
+    @Override
+    public HttpResponse webApiKeyDelete(
+            ApiKeyDeleteRequest request,
+            String orgName,
+            String authorizationHeader,
+            HttpResponseBuilder<Void> responseBuilder,
+            WebCoordinator coordinator
+    ) {
+        Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
+
+        organizationStore.removeApiKey(organization.getOrgName(), request.getName());
+
+        return responseBuilder.ok().build();
+    }
+
+    @Override
     public HttpResponse webRulesList(
             String orgName,
             String authorizationHeader,
@@ -69,6 +117,7 @@ public class Controller implements Processor {
         return responseBuilder.ok(transform(organization.getRulesLastUpdated(), organization.getRulesByName())).build();
     }
 
+    @Override
     public HttpResponse webRulesSet(
             Rules rules,
             String orgName,

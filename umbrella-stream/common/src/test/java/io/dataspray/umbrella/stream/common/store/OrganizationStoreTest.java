@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,8 @@ class OrganizationStoreTest extends AbstractDynamoTest {
         store.create("my org");
 
         // Test create api key
-        Organization org = store.createApiKeyForIngester("my org", "my api key", ImmutableSet.of());
+        store.createApiKeyForIngester("my org", "my api key", ImmutableSet.of());
+        Organization org = store.get("my org", false).orElseThrow();
         assertNotNull(org.getApiKeysByName().get("my api key"));
         assertTrue(org.getApiKeysByName().get("my api key").getEnabled());
         assertEquals(org.getApiKeysByName().get("my api key").getAllowedEventTypes(), ImmutableSet.of());

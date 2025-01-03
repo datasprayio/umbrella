@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -59,28 +60,24 @@ public class UmbrellaFilter implements Filter {
         Filter.super.init(filterConfig);
 
         // Enabled property
-        String enabledStr = filterConfig.getInitParameter("enabled");
-        if ("false".equalsIgnoreCase(enabledStr) || "0".equals(enabledStr)) {
+        enabled = getProperty("enabled", "umbrella.enabled", "UMBRELLA_ENABLED", filterConfig)
+                .map(enabledStr -> !"false".equalsIgnoreCase(enabledStr) && !"0".equals(enabledStr))
+                .orElse(true);
+        if (!enabled) {
             log.log(Level.INFO, "Umbrella Filter is disabled via configuration");
-            enabled = false;
             return;
         }
 
         // Organization key property
-        String orgName = filterConfig.getInitParameter("org");
-        if (orgName == null || orgName.isEmpty()) {
-            throw new ServletException("Umbrella Organization name property is missing");
-        }
+        String orgName = getProperty("org", "umbrella.org", "UMBRELLA_ORG", filterConfig)
+                .orElseThrow(() -> new ServletException("Umbrella Organization name property is missing"));
 
         // Api key property
-        String apiKey = filterConfig.getInitParameter("apiKey");
-        if (apiKey == null || apiKey.isEmpty()) {
-            throw new ServletException("Umbrella API key property is missing");
-        }
+        String apiKey = getProperty("api-key", "umbrella.api.key", "UMBRELLA_API_KEY", filterConfig)
+                .orElseThrow(() -> new ServletException("Umbrella API key property is missing"));
 
         // Endpoint URL property
-        Optional<String> endpointUrlOpt = Optional.ofNullable(filterConfig.getInitParameter("endpointUrl"))
-                .filter(s -> !s.isEmpty());
+        Optional<String> endpointUrlOpt = getProperty("endpoint-url", "umbrella.endpoint.url", "UMBRELLA_ENDPOINT_URL", filterConfig);
         endpointUrlOpt.ifPresent(endpointUrl -> log.log(Level.INFO, "Umbrella using endpoint: {0}", endpointUrl));
 
         umbrellaService.init(
@@ -272,5 +269,26 @@ public class UmbrellaFilter implements Filter {
         }
 
         return uniqueIdentifierParts;
+    }
+
+    private Optional<String> getProperty(
+            String nameFromFilter,
+            String nameFromProperty,
+            String nameFromEnv,
+            FilterConfig filterConfig) {
+        Optional<String> valueOpt = Optional.ofNullable(filterConfig.getInitParameter(nameFromFilter))
+                .filter(Predicate.not(String::isBlank));
+
+        if (valueOpt.isEmpty()) {
+            valueOpt = Optional.ofNullable(System.getProperty(nameFromProperty))
+                    .filter(Predicate.not(String::isBlank));
+        }
+
+        if (valueOpt.isEmpty()) {
+            valueOpt = Optional.ofNullable(System.getenv(nameFromEnv))
+                    .filter(Predicate.not(String::isBlank));
+        }
+
+        return valueOpt;
     }
 }

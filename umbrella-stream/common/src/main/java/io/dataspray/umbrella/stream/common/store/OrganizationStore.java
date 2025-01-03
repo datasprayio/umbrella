@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,9 +63,9 @@ public interface OrganizationStore {
 
     Organization setEndpointMapperSource(String orgName, Optional<String> endpointMapperSource);
 
-    Organization createApiKeyForAdmin(String orgName, String apiKeyName);
+    ApiKey createApiKeyForAdmin(String orgName, String apiKeyName);
 
-    Organization createApiKeyForIngester(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes);
+    ApiKey createApiKeyForIngester(String orgName, String apiKeyName, ImmutableSet<String> allowedEventTypes);
 
     Organization removeApiKey(String orgName, String apiKeyName);
 

@@ -25,7 +25,7 @@ Then adjust your `web.xml` to include the filter:
         This filter intercepts HTTP requests .
     </description>
     <filter-name>UmbrellaFilter</filter-name>
-    <filter-class>io.dataspray.umbrella.integration.tomcat</filter-class>
+    <filter-class>io.dataspray.umbrella.integration.tomcat.UmbrellaFilter</filter-class>
 
     <init-param>
         <description>
@@ -40,7 +40,8 @@ Then adjust your `web.xml` to include the filter:
             The API Key to use for authenticating
             with the Umbrella API.
         </description>
-        <param-name>apiKey</param-name>
+        <param-name>api-key</param-name>
+        <!-- You can also pass in via env UMBRELLA_API_KEY or property umbrella.api.key -->
         <param-value></param-value>
     </init-param>
     <!--
@@ -57,7 +58,7 @@ Then adjust your `web.xml` to include the filter:
             Override the endpoint URL to connect
             to a self-hosted instance.
         </description>
-        <param-name>endpointUrl</param-name>
+        <param-name>endpoint-url</param-name>
         <param-value>https://api.umbrella.dataspray.io</param-value>
     </init-param>
     -->

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -113,9 +113,9 @@ class UmbrellaFilterTest {
         FilterConfig filterConfig = mock(FilterConfig.class);
         when(filterConfig.getServletContext()).thenReturn(servletContext);
         when(filterConfig.getInitParameter("org")).thenReturn(orgName);
-        when(filterConfig.getInitParameter("apiKey")).thenReturn(apiKey);
+        when(filterConfig.getInitParameter("api-key")).thenReturn(apiKey);
         when(filterConfig.getInitParameter("enabled")).thenReturn(enabled);
-        when(filterConfig.getInitParameter("endpointUrl")).thenReturn(endpointUrl);
+        when(filterConfig.getInitParameter("endpoint-url")).thenReturn(endpointUrl);
 
         umbrellaFilter.init(filterConfig);
     }

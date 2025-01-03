@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright 2024 Matus Faro
+  ~ Copyright 2025 Matus Faro
   ~
   ~ Permission is hereby granted, free of charge, to any person obtaining a copy
   ~ of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 
     <groupId>io.dataspray.umbrella.integration</groupId>
     <artifactId>umbrella-typescript</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2</version>
     <packaging>jar</packaging>
 
     <name>Umbrella Integration TypeScript</name>
@@ -94,7 +94,7 @@
                                     <groupId>io.dataspray.umbrella</groupId>
                                     <artifactId>umbrella-api</artifactId>
                                     <classifier>openapi</classifier>
-                                    <version>0.0.1-SNAPSHOT</version>
+                                    <version>0.0.2</version>
                                     <type>tar.gz</type>
                                     <overWrite>true</overWrite>
                                     <outputDirectory>${project.build.directory}/unpacked-resources/openapi

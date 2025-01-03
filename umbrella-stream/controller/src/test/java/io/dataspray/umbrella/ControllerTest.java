@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,10 +54,10 @@ public class ControllerTest extends AbstractTest {
                 DynamoProvider.get());
 
         org = organizationStore.create("org1");
-        apiKey = organizationStore.createApiKeyForAdmin(org.getOrgName(), "apikey1")
-                .getApiKeysByName().get("apikey1");
+        apiKey = organizationStore.createApiKeyForAdmin(org.getOrgName(), "apikey1");
     }
 
+    @SuppressWarnings("unused")
     private static final List<Arguments> testWebRuleList = List.of(
             argumentSet("empty", ImmutableMap.of()),
             argumentSet("full", ImmutableMap.of(

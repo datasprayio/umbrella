@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "ApiKeyCreateRequest",
+  "title": "ApiKeyCreateRequest",
+  "type": "object",
+  "required": [
+    "type",
+    "name"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "Admin",
+        "Ingester"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "allowedEventTypes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
