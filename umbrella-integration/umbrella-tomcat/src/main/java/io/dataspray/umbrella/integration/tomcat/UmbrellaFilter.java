@@ -22,45 +22,76 @@
 
 package io.dataspray.umbrella.integration.tomcat;
 
+import io.dataspray.umbrella.client.model.Cookie;
 import io.dataspray.umbrella.client.model.HttpAction;
 import io.dataspray.umbrella.client.model.HttpMetadata;
 import io.dataspray.umbrella.client.model.RequestProcess;
-import jakarta.servlet.*;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
-import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Predicate;
+import java.util.function.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class UmbrellaFilter implements Filter {
+/**
+ * Umbrella filter for Tomcat.
+ * <p>
+ * Sends all requests to Umbrella for processing.
+ * <p>
+ * Supports both jakarta and javax.
+ */
+public class UmbrellaFilter implements jakarta.servlet.Filter, javax.servlet.Filter {
 
     private static final Logger log = Logger.getLogger(UmbrellaFilter.class.getCanonicalName());
     private final UmbrellaService umbrellaService;
     boolean enabled = true;
 
+    /**
+     * Default constructor.
+     */
     public UmbrellaFilter() {
         this(UmbrellaService.create());
     }
 
+    /**
+     * Constructor for testing.
+     */
     UmbrellaFilter(UmbrellaService umbrellaService) {
         this.umbrellaService = umbrellaService;
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-        Filter.super.init(filterConfig);
+    public void init(javax.servlet.FilterConfig filterConfig) throws javax.servlet.ServletException {
+        try {
+            init(filterConfig::getInitParameter, getServerIdentifierParts(
+                    filterConfig.getServletContext()::getServletContextName,
+                    filterConfig.getServletContext()::getServerInfo,
+                    filterConfig.getServletContext()::getVirtualServerName));
+        } catch (Exception ex) {
+            throw new javax.servlet.ServletException(ex);
+        }
+    }
+
+    @Override
+    public void init(jakarta.servlet.FilterConfig filterConfig) throws jakarta.servlet.ServletException {
+        try {
+            init(filterConfig::getInitParameter, getServerIdentifierParts(
+                    filterConfig.getServletContext()::getServletContextName,
+                    filterConfig.getServletContext()::getServerInfo,
+                    filterConfig.getServletContext()::getVirtualServerName));
+        } catch (Exception ex) {
+            throw new jakarta.servlet.ServletException(ex);
+        }
+    }
+
+    private void init(Function<String, String> filterConfigGetInitParameter, List<String> serverIdentifier) throws Exception {
 
         // Enabled property
-        enabled = getProperty("enabled", "umbrella.enabled", "UMBRELLA_ENABLED", filterConfig)
+        enabled = getProperty("enabled", "umbrella.enabled", "UMBRELLA_ENABLED", filterConfigGetInitParameter)
                 .map(enabledStr -> !"false".equalsIgnoreCase(enabledStr) && !"0".equals(enabledStr))
                 .orElse(true);
         if (!enabled) {
@@ -69,28 +100,28 @@ public class UmbrellaFilter implements Filter {
         }
 
         // Organization key property
-        String orgName = getProperty("org", "umbrella.org", "UMBRELLA_ORG", filterConfig)
-                .orElseThrow(() -> new ServletException("Umbrella Organization name property is missing"));
+        String orgName = getProperty("org", "umbrella.org", "UMBRELLA_ORG", filterConfigGetInitParameter)
+                .orElseThrow(() -> new Exception("Umbrella Organization name property is missing"));
 
         // Api key property
-        String apiKey = getProperty("api-key", "umbrella.api.key", "UMBRELLA_API_KEY", filterConfig)
-                .orElseThrow(() -> new ServletException("Umbrella API key property is missing"));
+        String apiKey = getProperty("api-key", "umbrella.api.key", "UMBRELLA_API_KEY", filterConfigGetInitParameter)
+                .orElseThrow(() -> new Exception("Umbrella API key property is missing"));
 
         // Endpoint URL property
-        Optional<String> endpointUrlOpt = getProperty("endpoint-url", "umbrella.endpoint.url", "UMBRELLA_ENDPOINT_URL", filterConfig);
+        Optional<String> endpointUrlOpt = getProperty("endpoint-url", "umbrella.endpoint.url", "UMBRELLA_ENDPOINT_URL", filterConfigGetInitParameter);
         endpointUrlOpt.ifPresent(endpointUrl -> log.log(Level.INFO, "Umbrella using endpoint: {0}", endpointUrl));
 
         umbrellaService.init(
                 orgName,
                 apiKey,
-                getServerIdentifierParts(filterConfig.getServletContext()),
+                serverIdentifier,
                 endpointUrlOpt);
 
         log.log(Level.FINE, "Umbrella initialized");
     }
 
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+    public void doFilter(javax.servlet.ServletRequest servletRequest, javax.servlet.ServletResponse servletResponse, javax.servlet.FilterChain filterChain) throws IOException, javax.servlet.ServletException {
 
         if (!enabled) {
             log.log(Level.FINEST, "Skipping due to filter being disabled");
@@ -98,40 +129,176 @@ public class UmbrellaFilter implements Filter {
             return;
         }
 
-        if (!(servletRequest instanceof HttpServletRequest)) {
+        if (!(servletRequest instanceof javax.servlet.http.HttpServletRequest)) {
             log.log(Level.FINE, "Skipping non-HTTP request");
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
-        HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+        javax.servlet.http.HttpServletRequest httpServletRequest = (javax.servlet.http.HttpServletRequest) servletRequest;
 
-        if (!(servletResponse instanceof HttpServletResponse)) {
+        if (!(servletResponse instanceof javax.servlet.http.HttpServletResponse)) {
             log.fine("Skipping non-HTTP response");
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
-        HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+        javax.servlet.http.HttpServletResponse httpServletResponse = (javax.servlet.http.HttpServletResponse) servletResponse;
+
+        boolean canContinue = doFilter(
+                httpServletRequest::getRequestURI,
+                httpServletRequest::getMethod,
+                httpServletRequest::getScheme,
+                httpServletRequest::getRemoteAddr,
+                httpServletRequest::getHeader,
+                httpServletRequest::getRemotePort,
+                httpServletRequest::getContentLengthLong,
+                httpServletRequest::getAttribute,
+                httpServletRequest::getHeaderNames,
+                () -> {
+                    javax.servlet.http.Cookie[] cookies = httpServletRequest.getCookies();
+                    return cookies == null ? Collections.emptyList() : Arrays.stream(cookies)
+                            .map(javax.servlet.http.Cookie::getName)
+                            .collect(Collectors.toList());
+                },
+                httpServletRequest::setAttribute,
+                httpServletResponse::setHeader,
+                cookie -> {
+                    javax.servlet.http.Cookie servletCookie = new javax.servlet.http.Cookie(cookie.getName(), cookie.getValue());
+                    if (cookie.getDomain() != null) {
+                        servletCookie.setDomain(cookie.getDomain());
+                    }
+                    if (cookie.getPath() != null) {
+                        servletCookie.setPath(cookie.getPath());
+                    }
+                    if (cookie.getMaxAge() != null) {
+                        servletCookie.setMaxAge(cookie.getMaxAge().intValue());
+                    }
+                    if (cookie.getSecure() != null) {
+                        servletCookie.setSecure(cookie.getSecure());
+                    }
+                    if (cookie.getHttpOnly() != null) {
+                        servletCookie.setHttpOnly(cookie.getHttpOnly());
+                    }
+                    if (cookie.getSameSite() != null) {
+                        log.warning("SameSite attribute is not supported in Servlet API");
+                    }
+                    httpServletResponse.addCookie(servletCookie);
+                },
+                httpServletResponse::setStatus
+        );
+
+        if (canContinue) {
+            filterChain.doFilter(servletRequest, servletResponse);
+        }
+    }
+
+    @Override
+    public void doFilter(jakarta.servlet.ServletRequest servletRequest, jakarta.servlet.ServletResponse servletResponse, jakarta.servlet.FilterChain filterChain) throws IOException, jakarta.servlet.ServletException {
+
+        if (!enabled) {
+            log.log(Level.FINEST, "Skipping due to filter being disabled");
+            filterChain.doFilter(servletRequest, servletResponse);
+            return;
+        }
+
+        if (!(servletRequest instanceof jakarta.servlet.http.HttpServletRequest)) {
+            log.log(Level.FINE, "Skipping non-HTTP request");
+            filterChain.doFilter(servletRequest, servletResponse);
+            return;
+        }
+        jakarta.servlet.http.HttpServletRequest httpServletRequest = (jakarta.servlet.http.HttpServletRequest) servletRequest;
+
+        if (!(servletResponse instanceof jakarta.servlet.http.HttpServletResponse)) {
+            log.fine("Skipping non-HTTP response");
+            filterChain.doFilter(servletRequest, servletResponse);
+            return;
+        }
+        jakarta.servlet.http.HttpServletResponse httpServletResponse = (jakarta.servlet.http.HttpServletResponse) servletResponse;
+
+        boolean canContinue = doFilter(
+                httpServletRequest::getRequestURI,
+                httpServletRequest::getMethod,
+                httpServletRequest::getScheme,
+                httpServletRequest::getRemoteAddr,
+                httpServletRequest::getHeader,
+                httpServletRequest::getRemotePort,
+                httpServletRequest::getContentLengthLong,
+                httpServletRequest::getAttribute,
+                httpServletRequest::getHeaderNames,
+                () -> {
+                    jakarta.servlet.http.Cookie[] cookies = httpServletRequest.getCookies();
+                    return cookies == null ? Collections.emptyList() : Arrays.stream(cookies)
+                            .map(jakarta.servlet.http.Cookie::getName)
+                            .collect(Collectors.toList());
+                },
+                httpServletRequest::setAttribute,
+                httpServletResponse::setHeader,
+                cookie -> {
+                    jakarta.servlet.http.Cookie servletCookie = new jakarta.servlet.http.Cookie(cookie.getName(), cookie.getValue());
+                    if (cookie.getDomain() != null) {
+                        servletCookie.setDomain(cookie.getDomain());
+                    }
+                    if (cookie.getPath() != null) {
+                        servletCookie.setPath(cookie.getPath());
+                    }
+                    if (cookie.getMaxAge() != null) {
+                        servletCookie.setMaxAge(cookie.getMaxAge().intValue());
+                    }
+                    if (cookie.getSecure() != null) {
+                        servletCookie.setSecure(cookie.getSecure());
+                    }
+                    if (cookie.getHttpOnly() != null) {
+                        servletCookie.setHttpOnly(cookie.getHttpOnly());
+                    }
+                    if (cookie.getSameSite() != null) {
+                        servletCookie.setAttribute("SameSite", cookie.getSameSite());
+                    }
+                    httpServletResponse.addCookie(servletCookie);
+                },
+                httpServletResponse::setStatus
+        );
+
+        if (canContinue) {
+            filterChain.doFilter(servletRequest, servletResponse);
+        }
+    }
+
+    private boolean doFilter(
+            Supplier<String> getRequestURI,
+            Supplier<String> getMethod,
+            Supplier<String> getScheme,
+            Supplier<String> getRemoteAddr,
+            Function<String, String> getHeader,
+            IntSupplier getRemotePort,
+            LongSupplier getContentLengthLong,
+            Function<String, Object> getAttribute,
+            Supplier<Enumeration<String>> getHeaderNames,
+            Supplier<List<String>> getCookieNames,
+            BiConsumer<String, String> setAttribute,
+            BiConsumer<String, String> setHeader,
+            Consumer<Cookie> setCookie,
+            IntConsumer setStatus
+    ) throws IOException {
 
         // Prepare request
         HttpMetadata data = new HttpMetadata();
         data.setTs(Instant.now());
-        data.setUri(httpServletRequest.getRequestURI());
-        data.setMethod(httpServletRequest.getMethod());
-        data.setProto(httpServletRequest.getScheme());
-        data.setIp(httpServletRequest.getRemoteAddr());
-        data.sethXFwdProto(httpServletRequest.getHeader("X-Forwarded-Proto"));
-        data.sethCfConnIp(httpServletRequest.getHeader("CF-Connecting-IP"));
-        data.sethTrueClientIp(httpServletRequest.getHeader("True-Client-IP"));
-        data.sethXRealIp(httpServletRequest.getHeader("X-Real-IP"));
-        data.sethFwd(httpServletRequest.getHeader("Forwarded"));
-        data.sethXFwdFor(httpServletRequest.getHeader("X-Forwarded-For"));
-        data.sethVia(httpServletRequest.getHeader("Via"));
-        data.setPort((long) httpServletRequest.getRemotePort());
-        data.sethXFwdPort(httpServletRequest.getHeader("X-Forwarded-Port"));
-        data.sethXFwdHost(httpServletRequest.getHeader("X-Forwarded-Host"));
-        data.sethXReqWith(httpServletRequest.getHeader("X-Requested-With"));
-        data.sethUserAgent(httpServletRequest.getHeader("User-Agent"));
-        String headerAuthorization = httpServletRequest.getHeader("Authorization");
+        data.setUri(getRequestURI.get());
+        data.setMethod(getMethod.get());
+        data.setProto(getScheme.get());
+        data.setIp(getRemoteAddr.get());
+        data.sethXFwdProto(getHeader.apply("X-Forwarded-Proto"));
+        data.sethCfConnIp(getHeader.apply("CF-Connecting-IP"));
+        data.sethTrueClientIp(getHeader.apply("True-Client-IP"));
+        data.sethXRealIp(getHeader.apply("X-Real-IP"));
+        data.sethFwd(getHeader.apply("Forwarded"));
+        data.sethXFwdFor(getHeader.apply("X-Forwarded-For"));
+        data.sethVia(getHeader.apply("Via"));
+        data.setPort((long) getRemotePort.getAsInt());
+        data.sethXFwdPort(getHeader.apply("X-Forwarded-Port"));
+        data.sethXFwdHost(getHeader.apply("X-Forwarded-Host"));
+        data.sethXReqWith(getHeader.apply("X-Requested-With"));
+        data.sethUserAgent(getHeader.apply("User-Agent"));
+        String headerAuthorization = getHeader.apply("Authorization");
         if (headerAuthorization != null) {
             String[] headerAuthorizationSplit = headerAuthorization.split(" +");
             if (headerAuthorizationSplit.length > 1) {
@@ -139,54 +306,47 @@ public class UmbrellaFilter implements Filter {
             }
             data.sethAuthSize((long) headerAuthorization.length());
         }
-        data.sethXReqId(httpServletRequest.getHeader("X-Request-ID"));
-        data.sethAccept(httpServletRequest.getHeader("Accept"));
-        data.sethAcceptLanguage(httpServletRequest.getHeader("Accept-Language"));
-        data.sethAcceptCharset(httpServletRequest.getHeader("Accept-Charset"));
-        data.sethAcceptEncoding(httpServletRequest.getHeader("Accept-Encoding"));
-        data.sethConnection(httpServletRequest.getHeader("Connection"));
-        data.sethContentType(httpServletRequest.getHeader("Content-Type"));
-        data.sethFrom(httpServletRequest.getHeader("From"));
-        data.sethHost(httpServletRequest.getHeader("Host"));
-        data.sethOrigin(httpServletRequest.getHeader("Origin"));
-        data.setContentLength(httpServletRequest.getContentLengthLong());
-        data.sethPragma(httpServletRequest.getHeader("Pragma"));
-        data.sethReferer(httpServletRequest.getHeader("Referer"));
-        data.sethSecChDevMem(httpServletRequest.getHeader("Sec-CH-Device-Memory"));
-        data.sethSecChUa(httpServletRequest.getHeader("Sec-CH-UA"));
-        data.sethSecChUaModel(httpServletRequest.getHeader("Sec-CH-UA-Model"));
-        data.sethSecChUaFull(httpServletRequest.getHeader("Sec-CH-UA-Full-Version"));
-        data.sethSecChUaMobile(httpServletRequest.getHeader("Sec-CH-UA-Mobile"));
-        data.sethSecChUaPlatform(httpServletRequest.getHeader("Sec-CH-UA-Platform"));
-        data.sethSecChUaArch(httpServletRequest.getHeader("Sec-CH-UA-Arch"));
-        data.sethSecFetchDest(httpServletRequest.getHeader("Sec-Fetch-Dest"));
-        data.sethSecFetchMode(httpServletRequest.getHeader("Sec-Fetch-Mode"));
-        data.sethSecFetchSite(httpServletRequest.getHeader("Sec-Fetch-Site"));
-        data.sethSecFetchUser(httpServletRequest.getHeader("Sec-Fetch-User"));
-        Object sslSessionAttr = httpServletRequest.getAttribute("jakarta.servlet.request.ssl_session");
-        if (sslSessionAttr == null) {
-            sslSessionAttr = httpServletRequest.getAttribute("javax.servlet.request.ssl_session");
-        }
-        if (sslSessionAttr instanceof SSLSession) {
-            SSLSession sslSession = (SSLSession) sslSessionAttr;
+        data.sethXReqId(getHeader.apply("X-Request-ID"));
+        data.sethAccept(getHeader.apply("Accept"));
+        data.sethAcceptLanguage(getHeader.apply("Accept-Language"));
+        data.sethAcceptCharset(getHeader.apply("Accept-Charset"));
+        data.sethAcceptEncoding(getHeader.apply("Accept-Encoding"));
+        data.sethConnection(getHeader.apply("Connection"));
+        data.sethContentType(getHeader.apply("Content-Type"));
+        data.sethFrom(getHeader.apply("From"));
+        data.sethHost(getHeader.apply("Host"));
+        data.sethOrigin(getHeader.apply("Origin"));
+        data.setContentLength(getContentLengthLong.getAsLong());
+        data.sethPragma(getHeader.apply("Pragma"));
+        data.sethReferer(getHeader.apply("Referer"));
+        data.sethSecChDevMem(getHeader.apply("Sec-CH-Device-Memory"));
+        data.sethSecChUa(getHeader.apply("Sec-CH-UA"));
+        data.sethSecChUaModel(getHeader.apply("Sec-CH-UA-Model"));
+        data.sethSecChUaFull(getHeader.apply("Sec-CH-UA-Full-Version"));
+        data.sethSecChUaMobile(getHeader.apply("Sec-CH-UA-Mobile"));
+        data.sethSecChUaPlatform(getHeader.apply("Sec-CH-UA-Platform"));
+        data.sethSecChUaArch(getHeader.apply("Sec-CH-UA-Arch"));
+        data.sethSecFetchDest(getHeader.apply("Sec-Fetch-Dest"));
+        data.sethSecFetchMode(getHeader.apply("Sec-Fetch-Mode"));
+        data.sethSecFetchSite(getHeader.apply("Sec-Fetch-Site"));
+        data.sethSecFetchUser(getHeader.apply("Sec-Fetch-User"));
+        // Note Jakarta uses javax SSLSession as well
+        Object sslSessionAttr = getAttribute.apply("javax.servlet.request.ssl_session");
+        if (sslSessionAttr instanceof javax.net.ssl.SSLSession) {
+            javax.net.ssl.SSLSession sslSession = (javax.net.ssl.SSLSession) sslSessionAttr;
             data.setTlsCipher(sslSession.getProtocol());
             data.setTlsProto(sslSession.getCipherSuite());
         }
-        Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
+        Enumeration<String> headerNames = getHeaderNames.get();
         if (headerNames != null) {
             data.setHeaderNames(Collections.list(headerNames));
         }
-        Cookie[] cookies = httpServletRequest.getCookies();
-        if (cookies != null) {
-            data.setCookieNames(Arrays.stream(cookies)
-                    .map(Cookie::getName)
-                    .collect(Collectors.toList()));
-        }
+        data.setCookieNames(getCookieNames.get());
         if (!umbrellaService.additionalHeadersToCollect().isEmpty()) {
             Map<String, String> additionalHeaders = new HashMap<>();
             data.additionalHeaders(additionalHeaders);
             umbrellaService.additionalHeadersToCollect().forEach(header -> {
-                String value = httpServletRequest.getHeader(header);
+                String value = getHeader.apply(header);
                 if (value != null) {
                     additionalHeaders.put(header, value);
                 }
@@ -198,52 +358,32 @@ public class UmbrellaFilter implements Filter {
 
         // Apply action
         if (httpAction.getRequestMetadata() != null) {
-            httpAction.getRequestMetadata().forEach(httpServletRequest::setAttribute);
+            httpAction.getRequestMetadata().forEach(setAttribute);
         }
         if (httpAction.getResponseHeaders() != null) {
-            httpAction.getResponseHeaders().forEach(httpServletResponse::setHeader);
+            httpAction.getResponseHeaders().forEach(setHeader);
         }
         if (httpAction.getResponseCookies() != null) {
-            httpAction.getResponseCookies().forEach(cookie -> {
-                Cookie servletCookie = new Cookie(cookie.getName(), cookie.getValue());
-                if (cookie.getDomain() != null) {
-                    servletCookie.setDomain(cookie.getDomain());
-                }
-                if (cookie.getPath() != null) {
-                    servletCookie.setPath(cookie.getPath());
-                }
-                if (cookie.getMaxAge() != null) {
-                    servletCookie.setMaxAge(cookie.getMaxAge().intValue());
-                }
-                if (cookie.getSecure() != null) {
-                    servletCookie.setSecure(cookie.getSecure());
-                }
-                if (cookie.getHttpOnly() != null) {
-                    servletCookie.setHttpOnly(cookie.getHttpOnly());
-                }
-                if (cookie.getSameSite() != null) {
-                    servletCookie.setAttribute("SameSite", cookie.getSameSite());
-                }
-                httpServletResponse.addCookie(servletCookie);
-            });
+            httpAction.getResponseCookies().forEach(setCookie);
         }
         if (httpAction.getResponseStatus() != null) {
-            httpServletResponse.setStatus(httpAction.getResponseStatus().intValue());
+            setStatus.accept(httpAction.getResponseStatus().intValue());
         }
 
         // Continue processing if allowed
-        if (RequestProcess.ALLOW.equals(httpAction.getRequestProcess())) {
-            filterChain.doFilter(servletRequest, servletResponse);
-        }
+        return RequestProcess.ALLOW.equals(httpAction.getRequestProcess());
     }
 
     @Override
     public void destroy() {
-        Filter.super.destroy();
         umbrellaService.shutdown();
     }
 
-    private List<String> getServerIdentifierParts(ServletContext context) {
+    private List<String> getServerIdentifierParts(
+            Supplier<String> contextGetServletContextName,
+            Supplier<String> contextGetServerInfo,
+            Supplier<String> contextGetVirtualServerName
+    ) {
         List<String> uniqueIdentifierParts = new ArrayList<>();
 
         // Host name of the server
@@ -253,18 +393,18 @@ public class UmbrellaFilter implements Filter {
         }
 
         // Display name of the web application as defined in web.xml (e.g. <display-name>MyApp</display-name>)
-        String servletContextName = context.getServletContextName();
+        String servletContextName = contextGetServletContextName.get();
         if (servletContextName != null) {
             uniqueIdentifierParts.add(servletContextName);
         }
 
         // Tomcat server info (e.g. Apache Tomcat/8.5.23)
-        uniqueIdentifierParts.add(context.getServerInfo());
+        uniqueIdentifierParts.add(contextGetServerInfo.get());
 
         // Virtual server name (e.g. example.com)
         // Only available from Servlet API 3.1.
         try {
-            uniqueIdentifierParts.add(context.getVirtualServerName());
+            uniqueIdentifierParts.add(contextGetVirtualServerName.get());
         } catch (NoSuchMethodError ignored) {
         }
 
@@ -275,8 +415,8 @@ public class UmbrellaFilter implements Filter {
             String nameFromFilter,
             String nameFromProperty,
             String nameFromEnv,
-            FilterConfig filterConfig) {
-        Optional<String> valueOpt = Optional.ofNullable(filterConfig.getInitParameter(nameFromFilter))
+            Function<String, String> filterConfigGetInitParameter) {
+        Optional<String> valueOpt = Optional.ofNullable(filterConfigGetInitParameter.apply(nameFromFilter))
                 .filter(Predicate.not(String::isBlank));
 
         if (valueOpt.isEmpty()) {
