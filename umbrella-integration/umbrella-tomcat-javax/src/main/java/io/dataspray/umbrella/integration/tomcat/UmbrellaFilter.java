@@ -25,12 +25,12 @@ package io.dataspray.umbrella.integration.tomcat;
 import io.dataspray.umbrella.client.model.HttpAction;
 import io.dataspray.umbrella.client.model.HttpMetadata;
 import io.dataspray.umbrella.client.model.RequestProcess;
-import jakarta.servlet.*;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import javax.net.ssl.SSLSession;
+import javax.servlet.*;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -218,7 +218,7 @@ public class UmbrellaFilter implements Filter {
                     servletCookie.setHttpOnly(cookie.getHttpOnly());
                 }
                 if (cookie.getSameSite() != null) {
-                    servletCookie.setAttribute("SameSite", cookie.getSameSite());
+                    log.log(Level.WARNING, "SameSite attribute is not supported in Servlet API");
                 }
                 httpServletResponse.addCookie(servletCookie);
             });

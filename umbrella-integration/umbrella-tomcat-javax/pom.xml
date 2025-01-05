@@ -32,11 +32,11 @@
     </parent>
 
     <groupId>io.dataspray.umbrella.integration</groupId>
-    <artifactId>umbrella-tomcat</artifactId>
+    <artifactId>umbrella-tomcat-javax</artifactId>
     <version>0.0.5</version>
     <packaging>jar</packaging>
 
-    <name>Umbrella Integration Tomcat</name>
+    <name>Umbrella Integration Tomcat Javax</name>
     <url>https://dataspray.io</url>
 
     <properties>
@@ -52,9 +52,9 @@
             <version>0.0.2</version>
         </dependency>
         <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <version>6.0.0</version>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>4.0.1</version>
             <scope>provided</scope>
         </dependency>
 

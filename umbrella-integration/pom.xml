@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-  ~ Copyright 2024 Matus Faro
+  ~ Copyright 2025 Matus Faro
   ~
   ~ Permission is hereby granted, free of charge, to any person obtaining a copy
   ~ of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,7 @@
     <modules>
         <module>umbrella-java</module>
         <module>umbrella-tomcat</module>
+        <module>umbrella-tomcat-javax</module>
         <module>umbrella-typescript</module>
         <module>umbrella-express</module>
     </modules>
