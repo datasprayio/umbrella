@@ -100,19 +100,19 @@ public class OrganizationStoreImpl implements OrganizationStore {
 
     @Override
     public Optional<Organization> getIfAuthorizedForIngestPing(String orgName, String apiKeyValueOrAuthHeader) {
-        return getIfAuthorizedForAdmin(orgName, apiKeyValueOrAuthHeader, Predicates.alwaysTrue());
+        return getIfAuthorized(orgName, apiKeyValueOrAuthHeader, Predicates.alwaysTrue());
     }
 
     @Override
     public Optional<Organization> getIfAuthorizedForIngestEvent(String orgName, @Nullable String apiKeyValueOrAuthHeader, String eventType) {
-        return getIfAuthorizedForAdmin(orgName, apiKeyValueOrAuthHeader,
+        return getIfAuthorized(orgName, apiKeyValueOrAuthHeader,
                 apiKey -> apiKey.getAllowedEventTypes().isEmpty()
                         || apiKey.getAllowedEventTypes().contains(eventType));
     }
 
     @Override
     public Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader) {
-        return getIfAuthorizedForAdmin(orgName, apiKeyValueOrAuthHeader, ApiKey::getIsAdmin);
+        return getIfAuthorized(orgName, apiKeyValueOrAuthHeader, ApiKey::getIsAdmin);
     }
 
     @Override
@@ -125,7 +125,7 @@ public class OrganizationStoreImpl implements OrganizationStore {
         return getIfAuthorizedForAdmin(SUPER_ADMIN_ORG_NAME, apiKeyValueOrAuthHeader).isPresent();
     }
 
-    private Optional<Organization> getIfAuthorizedForAdmin(String orgName, @Nullable String apiKeyValueOrAuthHeader, Predicate<ApiKey> actionPredicate) {
+    private Optional<Organization> getIfAuthorized(String orgName, @Nullable String apiKeyValueOrAuthHeader, Predicate<ApiKey> actionPredicate) {
         Optional<String> apiKeyValueOpt = extractApiKeyValue(apiKeyValueOrAuthHeader);
         if (apiKeyValueOpt.isEmpty()) {
             return Optional.empty();

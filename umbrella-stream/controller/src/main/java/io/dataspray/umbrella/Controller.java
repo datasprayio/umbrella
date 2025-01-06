@@ -62,9 +62,34 @@ public class Controller implements Processor {
     }
 
     @Override
+    public HttpResponse webApiKeyList(
+            String orgName,
+            String authorizationHeader,
+            HttpResponseBuilder<ApiKeyList> responseBuilder,
+            WebCoordinator coordinator
+    ) {
+        Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
+                .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
+
+        return responseBuilder.ok(ApiKeyList.builder()
+                .withApiKeyDescriptions(organization.getApiKeysByName().entrySet().stream()
+                        .map(e -> ApiKeyDescription.builder()
+                                .withName(e.getKey())
+                                .withEnabled(e.getValue().getEnabled())
+                                .withIsAdmin(e.getValue().getIsAdmin())
+                                .withAllowedEventTypes(e.getValue().getIsAdmin()
+                                        ? e.getValue().getAllowedEventTypes().asList()
+                                        : null)
+                                .build())
+                        .collect(ImmutableList.toImmutableList()))
+                .build()).build();
+    }
+
+    @Override
     public HttpResponse webApiKeyCreate(
             ApiKeyCreateRequest request,
             String orgName,
+            String apiKeyName,
             String authorizationHeader,
             HttpResponseBuilder<ApiKey> responseBuilder,
             WebCoordinator coordinator
@@ -72,17 +97,14 @@ public class Controller implements Processor {
         Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
                 .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
-        if (Type.ADMIN.equals(request.getType()) && request.getAllowedEventTypes().isPresent()) {
-            return responseBuilder.statusCode(400).body("Admin API key cannot be restricted to event types").build();
+        if (request.getIsAdmin() && request.getAllowedEventTypes().isPresent()) {
+            return responseBuilder.badRequest().body("Admin API key cannot be restricted to event types").build();
         }
 
-        OrganizationStore.ApiKey apiKey = switch (request.getType()) {
-            case ADMIN -> organizationStore.createApiKeyForAdmin(
-                    organization.getOrgName(), request.getName());
-            case INGESTER -> organizationStore.createApiKeyForIngester(
-                    organization.getOrgName(), request.getName(), request.getAllowedEventTypes().map(ImmutableSet::copyOf).orElse(ImmutableSet.of()));
-        };
-
+        OrganizationStore.ApiKey apiKey = request.getIsAdmin()
+                ? organizationStore.createApiKeyForAdmin(organization.getOrgName(), apiKeyName)
+                : organizationStore.createApiKeyForIngester(organization.getOrgName(), apiKeyName,
+                request.getAllowedEventTypes().map(ImmutableSet::copyOf).orElse(ImmutableSet.of()));
 
         return responseBuilder.ok(ApiKey.builder()
                 .withApiKeyValue(apiKey.getApiKeyValue()).build()).build();
@@ -90,8 +112,8 @@ public class Controller implements Processor {
 
     @Override
     public HttpResponse webApiKeyDelete(
-            ApiKeyDeleteRequest request,
             String orgName,
+            String apiKeyName,
             String authorizationHeader,
             HttpResponseBuilder<Void> responseBuilder,
             WebCoordinator coordinator
@@ -99,7 +121,7 @@ public class Controller implements Processor {
         Organization organization = organizationStore.getIfAuthorizedForAdmin(orgName, authorizationHeader)
                 .orElseThrow(() -> new HttpResponseException(responseBuilder.forbidden().build()));
 
-        organizationStore.removeApiKey(organization.getOrgName(), request.getName());
+        organizationStore.removeApiKey(organization.getOrgName(), apiKeyName);
 
         return responseBuilder.ok().build();
     }

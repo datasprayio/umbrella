@@ -128,7 +128,6 @@
                         <configuration>
                             <executable>${dstBinary}</executable>
                             <arguments>
-                                <argument>run</argument>
                                 <argument>deploy</argument>
                                 <argument>--profile</argument>
                                 <argument>${dstProfile}</argument>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2024 Matus Faro
+  ~ Copyright 2025 Matus Faro
   ~
   ~ Permission is hereby granted, free of charge, to any person obtaining a copy
   ~ of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
     <Loggers>
 
         <Logger name="com.amazonaws.services.dynamodbv2.local.shared.access.sqlite" level="OFF" additivity="false"/>
-        <Root level="trace">
+        <Root level="info">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>

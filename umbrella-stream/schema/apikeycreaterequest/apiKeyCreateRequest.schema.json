@@ -4,19 +4,11 @@
   "title": "ApiKeyCreateRequest",
   "type": "object",
   "required": [
-    "type",
-    "name"
+    "isAdmin"
   ],
   "properties": {
-    "type": {
-      "type": "string",
-      "enum": [
-        "Admin",
-        "Ingester"
-      ]
-    },
-    "name": {
-      "type": "string"
+    "isAdmin": {
+      "type": "boolean"
     },
     "allowedEventTypes": {
       "type": "array",

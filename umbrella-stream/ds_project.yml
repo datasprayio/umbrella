@@ -24,9 +24,9 @@ dataFormats:
     serde: JSON
   - name: Rule
     serde: JSON
-  - name: ApiKeyCreateRequest
+  - name: ApiKeyList
     serde: JSON
-  - name: ApiKeyDeleteRequest
+  - name: ApiKeyCreateRequest
     serde: JSON
   - name: ApiKey
     serde: JSON
@@ -108,12 +108,23 @@ javaProcessors:
               isRequired: false
           responseDataFormatName: ApiKey
 
-        - name: "apiKeyCreate"
+        - name: "apiKeyList"
           contentTypes: [ "application/json" ]
-          method: PUT
+          method: GET
           path: "/org/{org}/apikey"
           pathParams:
             - name: org
+          headers:
+            - name: "Authorization"
+              isRequired: true
+          responseDataFormatName: ApiKeyList
+        - name: "apiKeyCreate"
+          contentTypes: [ "application/json" ]
+          method: PUT
+          path: "/org/{org}/apikey/{apiKeyName}"
+          pathParams:
+            - name: org
+            - name: apiKeyName
           headers:
             - name: "Authorization"
               isRequired: true
@@ -122,13 +133,13 @@ javaProcessors:
         - name: "apiKeyDelete"
           contentTypes: [ "application/json" ]
           method: DELETE
-          path: "/org/{org}/apikey"
+          path: "/org/{org}/apikey/{apiKeyName}"
           pathParams:
             - name: org
+            - name: apiKeyName
           headers:
             - name: "Authorization"
               isRequired: true
-          requestDataFormatName: ApiKeyDeleteRequest
 
         - name: "rulesList"
           contentTypes: [ "application/json" ]
