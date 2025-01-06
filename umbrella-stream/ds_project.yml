@@ -31,17 +31,17 @@ dataFormats:
   - name: ApiKey
     serde: JSON
 datasprayStores:
-  - name: "ds-store"
+  - name: ds-store
     streams:
-      - dataFormatName: "HttpEvent"
-        name: "http-events"
-      - dataFormatName: "CustomEvent"
-        name: "custom-events"
+      - dataFormatName: HttpEvent
+        name: http-events
+      - dataFormatName: CustomEvent
+        name: custom-events
 dynamoState:
   lsiCount: 1
   gsiCount: 0
 javaProcessors:
-  - name: "ingester"
+  - name: ingester
     target: DATASPRAY
     hasDynamoState: true
     includeSingleTableLibrary: true
@@ -55,7 +55,7 @@ javaProcessors:
     web:
       isPublic: true
       endpoints:
-        - name: "nodePing"
+        - name: nodePing
           contentTypes: [ "application/json" ]
           method: POST
           path: "/org/{org}/node/ping"
@@ -66,7 +66,7 @@ javaProcessors:
               isRequired: true
           requestDataFormatName: PingRequest
           responseDataFormatName: PingResponse
-        - name: "httpEvent"
+        - name: httpEvent
           contentTypes: [ "application/json" ]
           method: POST
           path: "/org/{org}/event/http"
@@ -77,7 +77,7 @@ javaProcessors:
               isRequired: true
           requestDataFormatName: HttpEventRequest
           responseDataFormatName: HttpEventResponse
-        - name: "event"
+        - name: event
           contentTypes: [ "application/json" ]
           method: POST
           path: "/org/{org}/event/{eventType}"
@@ -85,11 +85,11 @@ javaProcessors:
             - name: org
             - name: eventType
           headers:
-            - name: "Authorization"
+            - name: Authorization
               isRequired: true
           requestDataFormatName: EventRequest
           responseDataFormatName: EventResponse
-  - name: "controller"
+  - name: controller
     target: DATASPRAY
     hasDynamoState: true
     includeSingleTableLibrary: true
@@ -97,28 +97,28 @@ javaProcessors:
       isPublic: true
       endpoints:
 
-        - name: "orgCreate"
+        - name: orgCreate
           contentTypes: [ "application/json" ]
           method: PUT
           path: "/org/{org}"
           pathParams:
             - name: org
           headers:
-            - name: "Authorization"
+            - name: Authorization
               isRequired: false
           responseDataFormatName: ApiKey
 
-        - name: "apiKeyList"
+        - name: apiKeyList
           contentTypes: [ "application/json" ]
           method: GET
           path: "/org/{org}/apikey"
           pathParams:
             - name: org
           headers:
-            - name: "Authorization"
+            - name: Authorization
               isRequired: true
           responseDataFormatName: ApiKeyList
-        - name: "apiKeyCreate"
+        - name: apiKeyCreate
           contentTypes: [ "application/json" ]
           method: PUT
           path: "/org/{org}/apikey/{apiKeyName}"
@@ -126,11 +126,11 @@ javaProcessors:
             - name: org
             - name: apiKeyName
           headers:
-            - name: "Authorization"
+            - name: Authorization
               isRequired: true
           requestDataFormatName: ApiKeyCreateRequest
           responseDataFormatName: ApiKey
-        - name: "apiKeyDelete"
+        - name: apiKeyDelete
           contentTypes: [ "application/json" ]
           method: DELETE
           path: "/org/{org}/apikey/{apiKeyName}"
@@ -138,26 +138,26 @@ javaProcessors:
             - name: org
             - name: apiKeyName
           headers:
-            - name: "Authorization"
+            - name: Authorization
               isRequired: true
 
-        - name: "rulesList"
+        - name: rulesList
           contentTypes: [ "application/json" ]
           method: GET
           path: "/org/{org}/rules"
           pathParams:
             - name: org
           headers:
-            - name: "Authorization"
+            - name: Authorization
               isRequired: true
           responseDataFormatName: Rules
-        - name: "rulesSet"
+        - name: rulesSet
           contentTypes: [ "application/json" ]
           method: PUT
           path: "/org/{org}/rules"
           pathParams:
             - name: org
           headers:
-            - name: "Authorization"
+            - name: Authorization
               isRequired: true
           requestDataFormatName: Rules

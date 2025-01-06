@@ -85,7 +85,7 @@ public class UmbrellaFilter implements Filter {
                 getServerIdentifierParts(filterConfig.getServletContext()),
                 endpointUrlOpt);
 
-        log.log(Level.FINE, "Umbrella initialized");
+        log.log(Level.INFO, "Umbrella enabled successfully");
     }
 
     @Override

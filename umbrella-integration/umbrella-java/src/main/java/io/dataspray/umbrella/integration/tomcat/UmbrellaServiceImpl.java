@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -132,7 +132,9 @@ class UmbrellaServiceImpl implements UmbrellaService {
 
     @Override
     public void shutdown() {
-        this.executor.shutdown();
+        if (this.executor != null) {
+            this.executor.shutdown();
+        }
     }
 
     private HttpEventResponse doHttpEvent(HttpMetadata data, OperationMode currentMode) throws ApiException {
