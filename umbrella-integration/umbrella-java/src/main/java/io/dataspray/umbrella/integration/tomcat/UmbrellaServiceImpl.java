@@ -50,6 +50,11 @@ class UmbrellaServiceImpl implements UmbrellaService {
     private String nodeIdentifier;
     volatile Config config = new Config()
             .mode(OperationMode.DISABLED);
+    /**
+     * Used for:
+     * - Background pinging
+     * - Async events (in MONITOR mode)
+     */
     ScheduledExecutorService executor;
 
     @Override
@@ -76,8 +81,12 @@ class UmbrellaServiceImpl implements UmbrellaService {
             }
         }
 
-        // Background pinging
-        this.executor = Executors.newSingleThreadScheduledExecutor();
+        this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(r);
+            thread.setName("Umbrella Service");
+            thread.setDaemon(true);
+            return thread;
+        });
         executor.scheduleAtFixedRate(() -> {
             try {
                 doPing();
@@ -111,7 +120,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
             case BLOCKING:
                 try {
                     return doHttpEvent(data, currentMode).getAction();
-                } catch (ApiException ex) {
+                } catch (Exception ex) {
                     log.log(Level.SEVERE, "Failed to validate http event", ex);
                     return DEFAULT_ALLOW_ACTION;
                 }
@@ -119,7 +128,7 @@ class UmbrellaServiceImpl implements UmbrellaService {
                 executor.execute(() -> {
                     try {
                         doHttpEvent(data, currentMode);
-                    } catch (ApiException ex) {
+                    } catch (Exception ex) {
                         log.log(Level.WARNING, "Failed to publish http event", ex);
                     }
                 });

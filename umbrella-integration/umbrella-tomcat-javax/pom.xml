@@ -25,19 +25,40 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <artifactId>umbrella-integration-parent</artifactId>
-        <groupId>io.dataspray.umbrella</groupId>
-        <version>0.0.2</version>
-    </parent>
-
     <groupId>io.dataspray.umbrella.integration</groupId>
     <artifactId>umbrella-tomcat-javax</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.7</version>
     <packaging>jar</packaging>
 
     <name>Umbrella Integration Tomcat Javax</name>
+    <description>Integrate DataSpray with Tomcat</description>
     <url>https://dataspray.io</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Matus Faro</name>
+            <email>matus@dataspray.io</email>
+        </developer>
+    </developers>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <java.version>11</java.version>
@@ -49,7 +70,7 @@
         <dependency>
             <groupId>io.dataspray.umbrella.integration</groupId>
             <artifactId>umbrella-java</artifactId>
-            <version>0.0.3</version>
+            <version>0.0.4</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -75,11 +96,18 @@
     <build>
         <plugins>
 
-            <!-- Publishing -->
+            <!-- Publishing START -->
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <!-- Disable -->
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.honton.chas</groupId>
                 <artifactId>exists-maven-plugin</artifactId>
-                <inherited>false</inherited>
+                <version>0.14.0</version>
                 <executions>
                     <execution>
                         <id>check-if-exists</id>
@@ -89,13 +117,16 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <property>skipDeployTomcat</property>
+                    <property>skipDeploy</property>
+                    <repository>https://s01.oss.sonatype.org/service/local/repositories/releases/content/
+                    </repository>
+                    <requireGoal>deploy</requireGoal>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <inherited>false</inherited>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -108,9 +139,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <inherited>false</inherited>
+                <version>3.6.3</version>
                 <configuration>
                     <source>${maven.compiler.source}</source>
+                    <doclint>none</doclint>
                 </configuration>
                 <executions>
                     <execution>
@@ -124,7 +156,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <inherited>false</inherited>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -135,13 +167,19 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <skip>${skipDeployTomcat}</skip>
+                    <skip>${skipDeploy}</skip>
+                    <gpgArguments>
+                        <arg>--pinentry-mode</arg>
+                        <arg>loopback</arg>
+                    </gpgArguments>
+                    <passphrase>${env.GPG_PASSPHRASE}</passphrase>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <inherited>false</inherited>
+                <version>1.7.0</version>
+                <extensions>true</extensions>
                 <executions>
                     <execution>
                         <id>nexus-stage</id>
@@ -153,9 +191,13 @@
                 </executions>
                 <configuration>
                     <!-- Defferring which effectively disables -->
-                    <skipNexusStagingDeployMojo>${skipDeployTomcat}</skipNexusStagingDeployMojo>
+                    <skipNexusStagingDeployMojo>${skipDeploy}</skipNexusStagingDeployMojo>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
+            <!-- Publishing END -->
         </plugins>
     </build>
 </project>

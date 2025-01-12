@@ -55,6 +55,7 @@ javaProcessors:
     web:
       isPublic: true
       endpoints:
+        # Note: this endpoint must match umbrella-api.yaml
         - name: nodePing
           contentTypes: [ "application/json" ]
           method: POST
@@ -66,6 +67,7 @@ javaProcessors:
               isRequired: true
           requestDataFormatName: PingRequest
           responseDataFormatName: PingResponse
+        # Note: this endpoint must match umbrella-api.yaml
         - name: httpEvent
           contentTypes: [ "application/json" ]
           method: POST
@@ -77,6 +79,7 @@ javaProcessors:
               isRequired: true
           requestDataFormatName: HttpEventRequest
           responseDataFormatName: HttpEventResponse
+        # Note: this endpoint must match umbrella-api.yaml
         - name: event
           contentTypes: [ "application/json" ]
           method: POST

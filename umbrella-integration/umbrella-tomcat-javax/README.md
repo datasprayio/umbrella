@@ -19,7 +19,6 @@ Make sure to add the uber-jar to the `lib` directory of your Tomcat installation
 Then adjust your `web.xml` to include the filter:
 
 ```xml
-
 <filter>
     <description>
         This filter intercepts HTTP requests .
@@ -63,4 +62,8 @@ Then adjust your `web.xml` to include the filter:
     </init-param>
     -->
 </filter>
+<filter-mapping>
+    <filter-name>UmbrellaFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
 ```

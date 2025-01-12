@@ -63,4 +63,8 @@ Then adjust your `web.xml` to include the filter:
     </init-param>
     -->
 </filter>
+<filter-mapping>
+<filter-name>UmbrellaFilter</filter-name>
+<url-pattern>/*</url-pattern>
+</filter-mapping>
 ```

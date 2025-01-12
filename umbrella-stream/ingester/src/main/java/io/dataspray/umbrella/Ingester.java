@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ import io.dataspray.runner.DynamoProvider;
 import io.dataspray.runner.dto.web.HttpResponse;
 import io.dataspray.runner.dto.web.HttpResponse.HttpResponseBuilder;
 import io.dataspray.runner.dto.web.HttpResponseException;
+import io.dataspray.stream.ingest.client.ApiException;
 import io.dataspray.umbrella.RuleRunner.Response;
 import io.dataspray.umbrella.stream.common.store.HealthStore;
 import io.dataspray.umbrella.stream.common.store.OrganizationStore;
@@ -81,9 +82,20 @@ public class Ingester implements Processor {
 
         Response<Action> response = ruleRunner.run(organization, httpEventRequest.getHttpMetadata());
 
-        coordinator.sendToHttpEvents(
-                response.getKeyOpt().orElseGet(() -> extractIp(httpEventRequest)),
-                new HttpEvent(httpEventRequest, response.getAction()));
+        try {
+            coordinator.sendToHttpEvents(
+                    response.getKeyOpt().orElseGet(() -> extractIp(httpEventRequest)),
+                    new HttpEvent(httpEventRequest, response.getAction()));
+        } catch (Exception ex) {
+            if (ex.getCause() instanceof ApiException
+                    && ((ApiException) ex.getCause()).getCode() == 429) {
+                return responseBuilder
+                        .statusCode(429)
+                        .body("Too many requests, please slow down")
+                        .build();
+            }
+            throw ex;
+        }
 
         return responseBuilder.ok(HttpEventResponse.builder()
                         .withAction(response.getAction())
