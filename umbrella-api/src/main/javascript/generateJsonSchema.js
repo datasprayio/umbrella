@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Matus Faro
+ * Copyright 2025 Matus Faro
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -69,6 +69,27 @@ const outDir = process.argv[3];
             }
         }
     }
+
+    // Custom logic to merge particular schemas together
+    // Disabled for now, merged manually
+    [
+        // ['HttpEvent', ['HttpEventRequest', 'HttpEventResponse']],
+        // ['CustomEvent', ['EventRequest', 'EventResponse']],
+    ].forEach(([title, parts]) => {
+        const schema = {
+            title,
+            type: 'object',
+            properties: {},
+            required: []
+        };
+        parts.forEach(part => {
+            const partSchema = schemas[part];
+            if (!partSchema) throw Error(`Schema ${part} not found from ${Object.keys(schemas)}`);
+            schema.properties = {...schema.properties, ...partSchema.properties};
+            schema.required = [...schema.required, ...(partSchema.required || [])];
+        });
+        schemas[title] = schema;
+    });
 
     // Write out schemas
     Object.entries(schemas).forEach(([name, schema]) => {
