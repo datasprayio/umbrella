@@ -131,6 +131,7 @@
                                 <argument>deploy</argument>
                                 <argument>--profile</argument>
                                 <argument>${dstProfile}</argument>
+                                <argument>-v</argument>
                             </arguments>
                         </configuration>
                     </execution>

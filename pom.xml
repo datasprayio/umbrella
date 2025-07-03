@@ -72,7 +72,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <!-- If changed, also change in .nvmrc -->
-        <node.version>v20.11.0</node.version>
+        <node.version>v22.17.0</node.version>
         <pnpm.version>v8.6.10</pnpm.version>
     </properties>
 
