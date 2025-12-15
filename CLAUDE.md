@@ -80,6 +80,14 @@ umbrella/
 
 ## Architecture
 
+### Client Architecture
+
+Umbrella uses a two-tier client architecture:
+- **Base Client**: Language-specific HTTP client (umbrella-java, umbrella-typescript)
+- **Web Server Integration**: Framework-specific middleware/filter (umbrella-tomcat, umbrella-express)
+
+For detailed client architecture, implementation requirements, and extension guide, see [CLIENT-ARCHITECTURE.md](CLIENT-ARCHITECTURE.md).
+
 ### API-First Design
 
 The OpenAPI spec at `umbrella-api/src/main/openapi/umbrella-api.yaml` is the single source of truth. Client code is generated from this specification:
@@ -92,7 +100,7 @@ The OpenAPI spec at `umbrella-api/src/main/openapi/umbrella-api.yaml` is the sin
 **umbrella-tomcat**: Jakarta Servlet API integration (Java 11+, current standard)
 **umbrella-tomcat-javax**: Legacy javax.servlet integration for older apps
 **umbrella-typescript**: TypeScript client with fetch-based HTTP
-**umbrella-express**: Express.js middleware integration
+**umbrella-express**: Express.js middleware integration (planned)
 
 ### Stream Processing (umbrella-stream)
 
