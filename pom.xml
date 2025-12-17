@@ -79,7 +79,6 @@
     <modules>
         <module>umbrella-api</module>
         <module>umbrella-integration</module>
-        <module>umbrella-stream</module>
     </modules>
 
     <build>
