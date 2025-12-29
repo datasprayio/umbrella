@@ -33,17 +33,16 @@
     </parent>
 
     <groupId>io.dataspray.umbrella</groupId>
-    <artifactId>umbrella-integration-parent</artifactId>
+    <artifactId>umbrella-base-parent</artifactId>
     <version>0.0.2</version>
     <packaging>pom</packaging>
 
-    <name>Umbrella Integration Parent</name>
+    <name>Umbrella Base Parent</name>
     <url>https://dataspray.io</url>
 
     <modules>
-        <module>umbrella-tomcat</module>
-        <module>umbrella-tomcat-javax</module>
-        <module>umbrella-express</module>
+        <module>umbrella-java</module>
+        <module>umbrella-typescript</module>
     </modules>
 
 </project>

@@ -26,12 +26,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>umbrella-integration-parent</artifactId>
+        <artifactId>umbrella-base-parent</artifactId>
         <groupId>io.dataspray.umbrella</groupId>
         <version>0.0.2</version>
     </parent>
 
-    <groupId>io.dataspray.umbrella.integration</groupId>
+    <groupId>io.dataspray.umbrella.base</groupId>
     <artifactId>umbrella-typescript</artifactId>
     <version>0.0.2</version>
     <packaging>jar</packaging>

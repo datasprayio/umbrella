@@ -74,7 +74,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.dataspray.umbrella.integration</groupId>
+            <groupId>io.dataspray.umbrella.base</groupId>
             <artifactId>umbrella-java</artifactId>
             <version>0.0.4</version>
         </dependency>

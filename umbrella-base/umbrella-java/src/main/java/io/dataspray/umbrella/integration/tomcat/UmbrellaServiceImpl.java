@@ -22,14 +22,36 @@
 
 package io.dataspray.umbrella.integration.tomcat;
 
-import com.google.gson.*;
-import io.dataspray.umbrella.client.*;
-import io.dataspray.umbrella.client.model.*;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import io.dataspray.umbrella.client.ApiClient;
+import io.dataspray.umbrella.client.ApiException;
+import io.dataspray.umbrella.client.HealthApi;
+import io.dataspray.umbrella.client.IngestApi;
+import io.dataspray.umbrella.client.JSON;
+import io.dataspray.umbrella.client.model.Config;
+import io.dataspray.umbrella.client.model.HttpAction;
+import io.dataspray.umbrella.client.model.HttpEventRequest;
+import io.dataspray.umbrella.client.model.HttpEventResponse;
+import io.dataspray.umbrella.client.model.HttpMetadata;
+import io.dataspray.umbrella.client.model.OperationMode;
+import io.dataspray.umbrella.client.model.PingRequest;
+import io.dataspray.umbrella.client.model.PingResponse;
+import io.dataspray.umbrella.client.model.RequestProcess;
 import okhttp3.OkHttpClient;
 
 import java.lang.reflect.Type;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

@@ -78,6 +78,7 @@
 
     <modules>
         <module>umbrella-api</module>
+        <module>umbrella-base</module>
         <module>umbrella-integration</module>
     </modules>
 

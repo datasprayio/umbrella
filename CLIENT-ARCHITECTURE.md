@@ -473,7 +473,8 @@ String nodeId = String.join("; ", parts);
 ### Current Implementations
 
 **Java (Base Client):**
-- Module: `umbrella-integration/umbrella-java`
+- Module: `umbrella-base/umbrella-java`
+- GroupId: `io.dataspray.umbrella.base`
 - Files:
   - `UmbrellaService.java` - Interface
   - `UmbrellaServiceImpl.java` - Implementation with OkHttp client
@@ -493,7 +494,8 @@ String nodeId = String.join("; ", parts);
 - Java Version: 11+
 
 **TypeScript (Base Client):**
-- Module: `umbrella-integration/umbrella-typescript`
+- Module: `umbrella-base/umbrella-typescript`
+- GroupId: `io.dataspray.umbrella.base`
 - Files:
   - `umbrellaClient.ts` - Wrapper around generated client
   - `client/*` - Generated from OpenAPI spec
