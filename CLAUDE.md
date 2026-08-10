@@ -27,8 +27,8 @@ umbrella/
 │                                  #   src/main/typescript/client/
 └── umbrella-integration/          # Web-server integrations
     ├── umbrella-tomcat/           #   Jakarta servlet filter (Servlet 6 / Tomcat 10.1+, Java 11 target)
-    ├── umbrella-tomcat-javax/     #   Legacy javax.servlet twin — a near-verbatim COPY of umbrella-tomcat
-    └── umbrella-express/          #   Empty stub — not implemented yet (pom + package.json only)
+    ├── umbrella-tomcat-javax/     #   Legacy javax.servlet twin — thin adapter only, logic is shared
+    └── umbrella-express/          #   npm `umbrella-express`; Express middleware over the TS client
 ```
 
 Key architectural docs: [CLIENT-ARCHITECTURE.md](CLIENT-ARCHITECTURE.md) (two-tier client design, implementation contract) and [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) (planned features — note its `umbrella-integration/umbrella-java/...` file paths are stale; that module now lives at `umbrella-base/umbrella-java/`).
@@ -37,7 +37,7 @@ Key architectural docs: [CLIENT-ARCHITECTURE.md](CLIENT-ARCHITECTURE.md) (two-ti
 
 - **Two-tier design**: base client (`umbrella-base/*`) owns HTTP communication, modes, ping loop; integrations (`umbrella-integration/*`) own request interception and action enforcement.
 - **Deliberate package sharing**: `umbrella-base/umbrella-java` uses package `io.dataspray.umbrella.integration.tomcat` so the Tomcat filters use it without imports. Renaming this package is a breaking change.
-- **Jakarta/javax duplication is copy-paste**: `umbrella-tomcat` and `umbrella-tomcat-javax` differ only in import prefixes and one SameSite-cookie line. Any fix to `UmbrellaFilter` (or its test) must be applied to BOTH modules.
+- **Shared logic, thin adapters**: request collection and action enforcement live once in `umbrella-base/umbrella-java` (`UmbrellaHttpExchange`, behind the `HttpExchangeAdapter` seam). Each servlet module supplies only `ServletExchange` plus a slim `UmbrellaFilter`. Fix behaviour in the shared class; the two `ServletExchange`/`UmbrellaFilter` pairs are still parallel files, so genuinely servlet-specific changes and their tests do need applying twice.
 - **Fail-open contract**: Umbrella must never break the host application. API errors/timeouts → ALLOW and continue the filter chain. Only an explicit BLOCK decision may stop a request. Preserve this in all changes.
 - **Operation modes** (server-controlled via ping/config): `BLOCKING` (synchronous decision per request), `MONITOR` (async fire-and-forget reporting), `DISABLED`. A 429 from the API temporarily disables until the next ping.
 
@@ -71,7 +71,7 @@ Publishing: Maven artifacts are GPG-signed and deployed via nexus-staging; npm p
 ## Tool Requirements
 
 - **Java**: 21 to build (maven-enforcer-plugin); integration/base jars target Java 11 for consumer compatibility
-- **Node.js**: v22.17.0 (`.nvmrc`; frontend-maven-plugin installs its own copy)
+- **Node.js**: v22.17.0 (`.nvmrc`; frontend-maven-plugin installs its own copy — a system pnpm newer than 8 will fail on this repo's lockfile, so build through Maven)
 - **pnpm**: 8.6.10
 - **Maven**: 3.x
 
@@ -79,19 +79,33 @@ Publishing: Maven artifacts are GPG-signed and deployed via nexus-staging; npm p
 
 JUnit 5 + Mockito; `umbrella-java` uses OkHttp MockWebServer.
 
-- `umbrella-base/umbrella-java`: `UmbrellaServiceTest` (init, block, timeout, monitor, disabled)
-- `umbrella-integration/umbrella-tomcat` and `-javax`: `UmbrellaFilterTest` (kept in sync manually — update both)
-- `umbrella-typescript`, `umbrella-api`, `umbrella-express`: no tests currently
+- `umbrella-base/umbrella-java`: `UmbrellaServiceTest` (init, block, timeout, monitor, disabled, 403 retry, 429) and `RequestFilteringTest` (regex, CIDR, truncation)
+- `umbrella-integration/umbrella-tomcat` and `-javax`: `UmbrellaFilterTest`, 18 tests each (kept in sync manually — update both)
+- `umbrella-base/umbrella-typescript`: `node --test`, run by the Maven `test` phase via `pnpm run test`
+- `umbrella-integration/umbrella-express`: `node --test`, same wiring
+- `umbrella-api`: no tests; the spec is validated by the generators in the consumer modules
 
-## Known Issues / Gotchas (as of 2026-08, post-split)
+## Request Filtering (opt-in)
 
-- **CI gating bug**: `.github/workflows/test.yml` only runs on pushes whose commit message contains `[skip deploy]` (monorepo leftover) — normal master pushes are untested. There is **no deploy workflow** in this repo; releases can't run from CI. The workflow also installs the `dst` CLI, which nothing here uses.
-- **GroupId migration hazard**: `umbrella-java` moved to groupId `io.dataspray.umbrella.base` but kept version 0.0.4 (published 0.0.4 exists only under the old `io.dataspray.umbrella.integration`). The tomcat modules (0.0.7, already published with old coordinates) hardcode the new dependency. Everything needs version bumps before the next release.
-- **Tomcat poms are unparented**: `umbrella-tomcat`/`-javax` declare no `<parent>` and duplicate ~100 lines of publishing config each.
-- **Publishing endpoints are dead**: all poms point at `s01.oss.sonatype.org` (OSSRH, decommissioned mid-2025); deploys need migration to Central Publisher Portal.
-- `.node-version` (18.16.1) contradicts `.nvmrc` (22.17.0) — trust `.nvmrc`.
-- Spec validation is disabled (`skipValidateSpec=true`) in consumer poms because the spec embeds non-standard `existingJavaType` keys (used by the enterprise repo's codegen).
-- `umbrella-express` is an empty stub that still produces an (empty) 0.0.2 jar.
+Both servlet integrations skip requests that don't need checking, configured like every other property (init-param, then system property, then environment variable):
+
+| init-param | Property | Purpose |
+| --- | --- | --- |
+| `exclusion-regex` | `umbrella.exclusion.regex` | Paths matching are skipped — typically static assets |
+| `inclusion-regex` | `umbrella.inclusion.regex` | When set, only matching paths are checked |
+| `skip-ips` | `umbrella.skip.ips` | Comma-separated IPs/CIDR blocks to skip (health checks, internal traffic) |
+
+A malformed pattern or address fails at `init()` rather than silently disabling protection. Express takes `excludePath` / `includePath` regexes instead.
+
+Collected header values are truncated (`StringTruncator`) so an oversized request cannot produce an oversized payload; `X-Forwarded-For` is truncated from the front to keep the entries nearest this server.
+
+## Known Issues / Gotchas
+
+- **Releases need new secrets**: publishing moved from the decommissioned OSSRH to the Central Publisher Portal, so the release workflow expects `CENTRAL_USERNAME` / `CENTRAL_TOKEN` instead of `OSSRH_USERNAME` / `OSSRH_TOKEN`. The workflow is manual (`workflow_dispatch`) and has a `dryRun` input. **These secrets are not set up yet** — the first release will fail until they are.
+- **Nothing has been published from the new coordinates yet**: `umbrella-java` is at 0.0.5 under `io.dataspray.umbrella.base` (0.0.4 exists only under the old `…integration` groupId), and the tomcat modules are at 0.0.8 (0.0.7 is published with the old dependency coordinates). `exists-maven-plugin` skips already-published versions, so any republish needs a version bump.
+- **Tomcat poms are unparented**: `umbrella-tomcat`/`-javax` declare no `<parent>` and duplicate ~100 lines of publishing config each. Version and plugin changes must be made in both.
+- The enterprise repo consumes `umbrella-api`'s `json-schema` artifact from `~/.m2`; it has never been published. Build this repo before building that one.
+- The vendor extension `x-existingJavaType` in the spec is rewritten to `existingJavaType` by `generateJsonSchema.js` for the enterprise repo's jsonschema2pojo. Keep that rewrite if you touch the generator.
 
 ## Git Configuration
 
