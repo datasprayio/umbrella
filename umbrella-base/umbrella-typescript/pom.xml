@@ -36,7 +36,7 @@
     <version>0.0.2</version>
     <packaging>jar</packaging>
 
-    <name>Umbrella Integration TypeScript</name>
+    <name>Umbrella Base TypeScript Client</name>
     <url>https://dataspray.io</url>
 
     <build>

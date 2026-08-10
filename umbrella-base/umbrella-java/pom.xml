@@ -33,10 +33,10 @@
 
     <groupId>io.dataspray.umbrella.base</groupId>
     <artifactId>umbrella-java</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
     <packaging>jar</packaging>
 
-    <name>Umbrella Integration Java Client</name>
+    <name>Umbrella Base Java Client</name>
     <description>Integrate DataSpray with Java</description>
     <url>https://dataspray.io</url>
 
@@ -54,17 +54,6 @@
             <email>matus@dataspray.io</email>
         </developer>
     </developers>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
 
     <scm>
         <url>git@github.com:datasprayio/umbrella.git</url>
@@ -247,7 +236,7 @@
                 </executions>
                 <configuration>
                     <property>skipDeploy</property>
-                    <repository>https://s01.oss.sonatype.org/service/local/repositories/releases/content/
+                    <repository>https://repo1.maven.org/maven2/
                     </repository>
                     <requireGoal>deploy</requireGoal>
                 </configuration>
@@ -305,25 +294,14 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.7.0</version>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.7.0</version>
                 <extensions>true</extensions>
-                <executions>
-                    <execution>
-                        <id>nexus-stage</id>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>deploy</goal>
-                        </goals>
-                    </execution>
-                </executions>
                 <configuration>
-                    <!-- Defferring which effectively disables -->
-                    <skipNexusStagingDeployMojo>${skipDeploy}</skipNexusStagingDeployMojo>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>true</autoPublish>
+                    <skipPublishing>${skipDeploy}</skipPublishing>
                 </configuration>
             </plugin>
             <!-- Publishing END -->

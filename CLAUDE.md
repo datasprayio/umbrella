@@ -4,174 +4,94 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Umbrella is a multi-module Maven project that integrates observability/monitoring capabilities with web frameworks. The project generates client libraries from an OpenAPI specification and provides integration modules for Java (Tomcat) and TypeScript (Express) frameworks.
+**umbrella** is the open-source (MIT) client side of Umbrella, a bot-protection / web-request-firewall product. Integrations intercept HTTP requests in a web server, send request metadata to the Umbrella API, and enforce the returned ALLOW/BLOCK decision.
 
-## Build System
+This repo was split out of the original monorepo:
 
-This is a hybrid Maven/Node.js project:
-- Maven coordinates the overall build (Java modules, code generation, testing)
-- Node.js/pnpm handles TypeScript builds and OpenAPI schema processing
-- The `frontend-maven-plugin` bridges Maven and Node.js tooling
+- **`umbrella`** (this repo): OpenAPI spec, base clients (Java/TypeScript), web-server integrations (Tomcat jakarta/javax, Express).
+- **`umbrella-enterprise`** (sibling repo, proprietary): the `umbrella-stream` backend (DataSpray-based ingester/controller). It consumes this repo's `umbrella-api` `json-schema` artifact — build this repo first (`mvn clean install`) so it lands in `~/.m2`.
 
-### Key Build Commands
-
-**Full build and test:**
-```bash
-mvn clean install
-```
-
-**Build without tests:**
-```bash
-mvn clean install -DskipTests
-```
-
-**Run tests only:**
-```bash
-mvn test
-```
-
-**Deploy (publish artifacts):**
-```bash
-mvn clean deploy -P<environment>
-# Where environment is: staging or production
-```
-
-**Clean everything (including node modules):**
-```bash
-mvn clean
-```
-
-### Module-Specific Commands
-
-**Build umbrella-api (generates JSON schemas from OpenAPI):**
-```bash
-cd umbrella-api
-mvn clean install
-# Or directly run the schema generation:
-pnpm run generate-json-schema
-```
-
-**Build TypeScript base client:**
-```bash
-cd umbrella-base/umbrella-typescript
-mvn clean install
-# This generates TypeScript client from OpenAPI, then builds with pnpm
-```
-
-## Project Structure
+## Repository Structure
 
 ```
 umbrella/
-├── umbrella-api/              # OpenAPI specification and schema generation
-│   ├── src/main/openapi/      # umbrella-api.yaml (source of truth)
-│   └── src/main/javascript/   # Schema generation scripts
-├── umbrella-base/             # Base client libraries (framework-agnostic)
-│   ├── umbrella-java/         # Base Java client
-│   └── umbrella-typescript/   # TypeScript client library
-├── umbrella-integration/      # Web server integration libraries
-│   ├── umbrella-tomcat/       # Tomcat Jakarta integration (Java 11+)
-│   ├── umbrella-tomcat-javax/ # Tomcat javax integration (legacy)
-│   └── umbrella-express/      # Express.js integration
-└── umbrella-stream/           # Stream processing (DataSpray)
-    ├── common/                # Shared stream utilities
-    ├── controller/            # Control plane functions
-    ├── ingester/              # Data ingestion functions
-    └── schema/                # DataSpray schemas
+├── umbrella-api/                  # OpenAPI spec (source of truth) + JSON schema generation
+│   ├── src/main/openapi/          #   umbrella-api.yaml
+│   └── src/main/javascript/       #   generateJsonSchema.js (node)
+│   # Publishes two classifier tar.gz artifacts: `openapi` (raw yaml) and `json-schema`
+├── umbrella-base/                 # Framework-agnostic base clients
+│   ├── umbrella-java/             #   UmbrellaService(-Impl) wrapping a build-time-generated
+│   │                              #   okhttp/gson client (groupId io.dataspray.umbrella.base)
+│   └── umbrella-typescript/       #   npm package `umbrella-client`; thin UmbrellaClient wrapper;
+│                                  #   generated typescript-fetch client is CHECKED IN under
+│                                  #   src/main/typescript/client/
+└── umbrella-integration/          # Web-server integrations
+    ├── umbrella-tomcat/           #   Jakarta servlet filter (Servlet 6 / Tomcat 10.1+, Java 11 target)
+    ├── umbrella-tomcat-javax/     #   Legacy javax.servlet twin — a near-verbatim COPY of umbrella-tomcat
+    └── umbrella-express/          #   Empty stub — not implemented yet (pom + package.json only)
 ```
 
-## Architecture
+Key architectural docs: [CLIENT-ARCHITECTURE.md](CLIENT-ARCHITECTURE.md) (two-tier client design, implementation contract) and [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) (planned features — note its `umbrella-integration/umbrella-java/...` file paths are stale; that module now lives at `umbrella-base/umbrella-java/`).
 
-### Client Architecture
+## Architecture Notes (important when editing)
 
-Umbrella uses a two-tier client architecture:
-- **Base Client**: Language-specific HTTP client (umbrella-java, umbrella-typescript)
-- **Web Server Integration**: Framework-specific middleware/filter (umbrella-tomcat, umbrella-express)
+- **Two-tier design**: base client (`umbrella-base/*`) owns HTTP communication, modes, ping loop; integrations (`umbrella-integration/*`) own request interception and action enforcement.
+- **Deliberate package sharing**: `umbrella-base/umbrella-java` uses package `io.dataspray.umbrella.integration.tomcat` so the Tomcat filters use it without imports. Renaming this package is a breaking change.
+- **Jakarta/javax duplication is copy-paste**: `umbrella-tomcat` and `umbrella-tomcat-javax` differ only in import prefixes and one SameSite-cookie line. Any fix to `UmbrellaFilter` (or its test) must be applied to BOTH modules.
+- **Fail-open contract**: Umbrella must never break the host application. API errors/timeouts → ALLOW and continue the filter chain. Only an explicit BLOCK decision may stop a request. Preserve this in all changes.
+- **Operation modes** (server-controlled via ping/config): `BLOCKING` (synchronous decision per request), `MONITOR` (async fire-and-forget reporting), `DISABLED`. A 429 from the API temporarily disables until the next ping.
 
-For detailed client architecture, implementation requirements, and extension guide, see [CLIENT-ARCHITECTURE.md](CLIENT-ARCHITECTURE.md).
+## Build System
 
-### API-First Design
+Hybrid Maven + pnpm. Maven drives everything; `frontend-maven-plugin` installs Node/pnpm into `./node` and runs the TypeScript builds. Java clients are generated at build time from the unpacked `umbrella-api` artifact (`openapi-generator-maven-plugin`); the TypeScript generated client is checked in.
 
-The OpenAPI spec at `umbrella-api/src/main/openapi/umbrella-api.yaml` is the single source of truth. Client code is generated from this specification:
-- TypeScript client: Generated by `openapi-generator-maven-plugin` using `typescript-fetch` generator
-- Java client: Generated using OpenAPI generator for Java
+### Key Commands
 
-### Base Client Modules
-
-**umbrella-java** (`io.dataspray.umbrella.base:umbrella-java`): Core Java client with HTTP communication logic
-**umbrella-typescript** (`io.dataspray.umbrella.base:umbrella-typescript`): TypeScript client with fetch-based HTTP
-
-### Integration Modules
-
-**umbrella-tomcat** (`io.dataspray.umbrella.integration:umbrella-tomcat`): Jakarta Servlet API integration (Java 11+, current standard)
-**umbrella-tomcat-javax** (`io.dataspray.umbrella.integration:umbrella-tomcat-javax`): Legacy javax.servlet integration for older apps
-**umbrella-express** (`io.dataspray.umbrella.integration:umbrella-express`): Express.js middleware integration (planned)
-
-### Stream Processing (umbrella-stream)
-
-Built with DataSpray (dst CLI tool):
-- **ingester**: Handles incoming HTTP events and custom events via queue
-- **controller**: Manages organizations, API keys, and rules
-- **Architecture diagram**: See `umbrella-stream/ARCHITECTURE.md` for Mermaid diagram
-
-## Development Workflow
-
-### Working with OpenAPI Specs
-
-1. Edit `umbrella-api/src/main/openapi/umbrella-api.yaml`
-2. Regenerate schemas: `cd umbrella-api && mvn clean install`
-3. Regenerate clients: Build base client modules (e.g., `cd umbrella-base/umbrella-typescript && mvn clean install`)
-
-### Testing
-
-Java tests use JUnit 5 and Mockito:
 ```bash
-# Run all tests
-mvn test
+# Full build and test (from repo root)
+mvn clean install
 
-# Run tests in specific module
-cd umbrella-integration/umbrella-tomcat
-mvn test
+# Without tests
+mvn clean install -DskipTests
 
-# Run single test class
-mvn test -Dtest=ClassName
+# Single module (umbrella-api must be installed first for downstream modules)
+cd umbrella-base/umbrella-java && mvn clean install
+
+# Single test class
+mvn test -Dtest=UmbrellaFilterTest
+
+# Regenerate after editing the OpenAPI spec
+# 1. Edit umbrella-api/src/main/openapi/umbrella-api.yaml
+# 2. cd umbrella-api && mvn clean install          (regenerates JSON schemas)
+# 3. Rebuild umbrella-base modules                 (regenerates clients)
 ```
 
-### Version Management
-
-- Java version: 21 (defined in parent pom.xml)
-- Node version: v22.17.0 (see `.nvmrc`, `.node-version`)
-- Integration modules may use Java 11 for broader compatibility
+Publishing: Maven artifacts are GPG-signed and deployed via nexus-staging; npm packages publish during the Maven `deploy` phase (`can-npm-publish` guard). `exists-maven-plugin` skips already-published versions — **version bumps are required for any republish**.
 
 ## Tool Requirements
 
-- **Java**: 21 (enforced by maven-enforcer-plugin)
-- **Node.js**: v22.17.0 (managed by frontend-maven-plugin or use nvm/asdf)
+- **Java**: 21 to build (maven-enforcer-plugin); integration/base jars target Java 11 for consumer compatibility
+- **Node.js**: v22.17.0 (`.nvmrc`; frontend-maven-plugin installs its own copy)
+- **pnpm**: 8.6.10
 - **Maven**: 3.x
-- **pnpm**: v8.6.10
-- **dst**: DataSpray CLI (for stream module development)
 
-Version managers:
-- Node: Use `.nvmrc` with nvm, or `.node-version` with asdf
-- Java: Use `.sdkmanrc` with sdkman or `.tool-versions` with asdf
+## Testing
 
-## Publishing
+JUnit 5 + Mockito; `umbrella-java` uses OkHttp MockWebServer.
 
-Artifacts are published to Maven Central (Sonatype OSSRH) and npm:
-- Maven artifacts: Published via `nexus-staging-maven-plugin`
-- npm packages: Published from TypeScript modules during Maven deploy phase
-- All artifacts are GPG signed
-- The `exists-maven-plugin` prevents duplicate deployments
+- `umbrella-base/umbrella-java`: `UmbrellaServiceTest` (init, block, timeout, monitor, disabled)
+- `umbrella-integration/umbrella-tomcat` and `-javax`: `UmbrellaFilterTest` (kept in sync manually — update both)
+- `umbrella-typescript`, `umbrella-api`, `umbrella-express`: no tests currently
 
-## CI/CD
+## Known Issues / Gotchas (as of 2026-08, post-split)
 
-GitHub Actions workflows:
-- **test.yml**: Runs `mvn clean install` on push/PR to master
-- **deploy.yml**: Deploys to staging/production, publishes artifacts
-
-Both workflows require:
-- Java 21
-- Node.js (from .nvmrc)
-- dst CLI (DataSpray tool via asdf)
+- **CI gating bug**: `.github/workflows/test.yml` only runs on pushes whose commit message contains `[skip deploy]` (monorepo leftover) — normal master pushes are untested. There is **no deploy workflow** in this repo; releases can't run from CI. The workflow also installs the `dst` CLI, which nothing here uses.
+- **GroupId migration hazard**: `umbrella-java` moved to groupId `io.dataspray.umbrella.base` but kept version 0.0.4 (published 0.0.4 exists only under the old `io.dataspray.umbrella.integration`). The tomcat modules (0.0.7, already published with old coordinates) hardcode the new dependency. Everything needs version bumps before the next release.
+- **Tomcat poms are unparented**: `umbrella-tomcat`/`-javax` declare no `<parent>` and duplicate ~100 lines of publishing config each.
+- **Publishing endpoints are dead**: all poms point at `s01.oss.sonatype.org` (OSSRH, decommissioned mid-2025); deploys need migration to Central Publisher Portal.
+- `.node-version` (18.16.1) contradicts `.nvmrc` (22.17.0) — trust `.nvmrc`.
+- Spec validation is disabled (`skipValidateSpec=true`) in consumer poms because the spec embeds non-standard `existingJavaType` keys (used by the enterprise repo's codegen).
+- `umbrella-express` is an empty stub that still produces an (empty) 0.0.2 jar.
 
 ## Git Configuration
 
