@@ -100,3 +100,6 @@ fabric.properties
 
 # CDK
 **/cdk.out/**
+### IDE project files (machine-specific, high churn)
+.idea/
+*.iml

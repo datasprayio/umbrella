@@ -288,6 +288,39 @@ class UmbrellaFilterTest {
     }
 
     @Test
+    void testDoFilterSkipsExcludedPath() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(request.getRequestURI()).thenReturn("/static/app.css");
+        umbrellaFilter.requestFilterConfig = new RequestFilterConfig(
+                Optional.empty(), Optional.of("\\.css$"), Optional.empty());
+
+        umbrellaFilter.doFilter(request, response, chain);
+
+        verify(chain, times(1)).doFilter(eq(request), eq(response));
+        verify(umbrellaService, times(0)).httpEvent(any());
+    }
+
+    @Test
+    void testDoFilterSkipsTrustedIp() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(request.getRequestURI()).thenReturn("/api/thing");
+        when(request.getRemoteAddr()).thenReturn("10.1.2.3");
+        umbrellaFilter.requestFilterConfig = new RequestFilterConfig(
+                Optional.empty(), Optional.empty(), Optional.of("10.0.0.0/8"));
+
+        umbrellaFilter.doFilter(request, response, chain);
+
+        verify(chain, times(1)).doFilter(eq(request), eq(response));
+        verify(umbrellaService, times(0)).httpEvent(any());
+    }
+
+    @Test
     void testDestroy() throws Exception {
         umbrellaFilter.destroy();
         verify(umbrellaService, times(1)).shutdown();

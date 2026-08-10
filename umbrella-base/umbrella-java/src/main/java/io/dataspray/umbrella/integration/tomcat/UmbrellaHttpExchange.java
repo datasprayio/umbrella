@@ -27,7 +27,9 @@ import io.dataspray.umbrella.client.model.HttpMetadata;
 import io.dataspray.umbrella.client.model.RequestProcess;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +50,19 @@ public final class UmbrellaHttpExchange {
      */
     static final int DEFAULT_BLOCK_STATUS = 403;
 
+    // Caps on collected values, so that an oversized request cannot produce an oversized API payload
+    static final int MAX_URI_BYTES = 2048;
+    static final int MAX_USER_AGENT_BYTES = 768;
+    static final int MAX_REFERER_BYTES = 1024;
+    static final int MAX_LONG_HEADER_BYTES = 512;
+    static final int MAX_SHORT_HEADER_BYTES = 256;
+    static final int MAX_TINY_HEADER_BYTES = 128;
+    static final int MAX_NAME_LIST_BYTES = 512;
+
     public static HttpMetadata collect(HttpExchangeAdapter.Request request, List<String> additionalHeadersToCollect) {
         HttpMetadata data = new HttpMetadata();
         data.setTs(Instant.now());
-        data.setUri(request.getRequestUri());
+        data.setUri(StringTruncator.truncate(request.getRequestUri(), MAX_URI_BYTES));
         data.setMethod(request.getMethod());
         data.setProto(request.getScheme());
         data.setIp(request.getRemoteAddr());
@@ -59,14 +70,14 @@ public final class UmbrellaHttpExchange {
         data.sethCfConnIp(request.getHeader("CF-Connecting-IP"));
         data.sethTrueClientIp(request.getHeader("True-Client-IP"));
         data.sethXRealIp(request.getHeader("X-Real-IP"));
-        data.sethFwd(request.getHeader("Forwarded"));
-        data.sethXFwdFor(request.getHeader("X-Forwarded-For"));
-        data.sethVia(request.getHeader("Via"));
+        data.sethFwd(StringTruncator.truncate(request.getHeader("Forwarded"), MAX_LONG_HEADER_BYTES));
+        data.sethXFwdFor(StringTruncator.truncateKeepingEnd(request.getHeader("X-Forwarded-For"), MAX_LONG_HEADER_BYTES));
+        data.sethVia(StringTruncator.truncate(request.getHeader("Via"), MAX_SHORT_HEADER_BYTES));
         data.setPort((long) request.getRemotePort());
         data.sethXFwdPort(request.getHeader("X-Forwarded-Port"));
-        data.sethXFwdHost(request.getHeader("X-Forwarded-Host"));
+        data.sethXFwdHost(StringTruncator.truncate(request.getHeader("X-Forwarded-Host"), MAX_LONG_HEADER_BYTES));
         data.sethXReqWith(request.getHeader("X-Requested-With"));
-        data.sethUserAgent(request.getHeader("User-Agent"));
+        data.sethUserAgent(StringTruncator.truncate(request.getHeader("User-Agent"), MAX_USER_AGENT_BYTES));
         String headerAuthorization = request.getHeader("Authorization");
         if (headerAuthorization != null) {
             String[] headerAuthorizationSplit = headerAuthorization.split(" +");
@@ -76,18 +87,18 @@ public final class UmbrellaHttpExchange {
             data.sethAuthSize((long) headerAuthorization.length());
         }
         data.sethXReqId(request.getHeader("X-Request-ID"));
-        data.sethAccept(request.getHeader("Accept"));
-        data.sethAcceptLanguage(request.getHeader("Accept-Language"));
-        data.sethAcceptCharset(request.getHeader("Accept-Charset"));
-        data.sethAcceptEncoding(request.getHeader("Accept-Encoding"));
+        data.sethAccept(StringTruncator.truncate(request.getHeader("Accept"), MAX_LONG_HEADER_BYTES));
+        data.sethAcceptLanguage(StringTruncator.truncate(request.getHeader("Accept-Language"), MAX_SHORT_HEADER_BYTES));
+        data.sethAcceptCharset(StringTruncator.truncate(request.getHeader("Accept-Charset"), MAX_TINY_HEADER_BYTES));
+        data.sethAcceptEncoding(StringTruncator.truncate(request.getHeader("Accept-Encoding"), MAX_TINY_HEADER_BYTES));
         data.sethConnection(request.getHeader("Connection"));
-        data.sethContentType(request.getHeader("Content-Type"));
+        data.sethContentType(StringTruncator.truncate(request.getHeader("Content-Type"), MAX_TINY_HEADER_BYTES));
         data.sethFrom(request.getHeader("From"));
-        data.sethHost(request.getHeader("Host"));
-        data.sethOrigin(request.getHeader("Origin"));
+        data.sethHost(StringTruncator.truncate(request.getHeader("Host"), MAX_LONG_HEADER_BYTES));
+        data.sethOrigin(StringTruncator.truncate(request.getHeader("Origin"), MAX_LONG_HEADER_BYTES));
         data.setContentLength(request.getContentLengthLong());
         data.sethPragma(request.getHeader("Pragma"));
-        data.sethReferer(request.getHeader("Referer"));
+        data.sethReferer(StringTruncator.truncate(request.getHeader("Referer"), MAX_REFERER_BYTES));
         data.sethSecChDevMem(request.getHeader("Sec-CH-Device-Memory"));
         data.sethSecChUa(request.getHeader("Sec-CH-UA"));
         data.sethSecChUaModel(request.getHeader("Sec-CH-UA-Model"));
@@ -104,11 +115,11 @@ public final class UmbrellaHttpExchange {
 
         List<String> headerNames = request.getHeaderNames();
         if (headerNames != null) {
-            data.setHeaderNames(headerNames);
+            data.setHeaderNames(capNameList(headerNames));
         }
         List<String> cookieNames = request.getCookieNames();
         if (cookieNames != null) {
-            data.setCookieNames(cookieNames);
+            data.setCookieNames(capNameList(cookieNames));
         }
         if (!additionalHeadersToCollect.isEmpty()) {
             Map<String, String> additionalHeaders = new HashMap<>();
@@ -116,7 +127,7 @@ public final class UmbrellaHttpExchange {
             for (String header : additionalHeadersToCollect) {
                 String value = request.getHeader(header);
                 if (value != null) {
-                    additionalHeaders.put(header, value);
+                    additionalHeaders.put(header, StringTruncator.truncate(value, MAX_SHORT_HEADER_BYTES));
                 }
             }
         }
@@ -155,6 +166,23 @@ public final class UmbrellaHttpExchange {
                 ? action.getResponseStatus().intValue()
                 : DEFAULT_BLOCK_STATUS);
         return false;
+    }
+
+    /**
+     * Keeps the combined length of a name list within the payload cap, dropping trailing names.
+     */
+    private static List<String> capNameList(List<String> names) {
+        List<String> capped = new ArrayList<>(names.size());
+        int budget = MAX_NAME_LIST_BYTES;
+        for (String name : names) {
+            int cost = name.getBytes(StandardCharsets.UTF_8).length + 1;
+            if (cost > budget) {
+                break;
+            }
+            budget -= cost;
+            capped.add(name);
+        }
+        return capped;
     }
 
     private UmbrellaHttpExchange() {

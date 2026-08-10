@@ -2,6 +2,26 @@
 
 Based on analysis of DataDome's client architecture, this plan outlines recommended improvements to Umbrella to enhance performance while maintaining architectural flexibility.
 
+## Status (2026-08)
+
+Phase 1 is implemented, along with performance metrics from Phase 2:
+
+| # | Item | Status |
+| --- | --- | --- |
+| 1 | URL pattern filtering | Done — `RequestFilterConfig`, `inclusion-regex` / `exclusion-regex` |
+| 2 | IP allowlisting (CIDR) | Done — `IpAddressMatcher`, `skip-ips` |
+| 3 | Field truncation | Done — `StringTruncator`, applied in `UmbrellaHttpExchange.collect` |
+| 4 | HTTP proxy support | Not started |
+| 5 | DNS caching | Not started |
+| 6 | Performance metrics | Done — `umbrella.spent_time_ms` request attribute |
+| 7 | Environment variable substitution | Partial — every property already falls back to an environment variable, `${VAR}` interpolation is not supported |
+| 8 | Header-based session tracking | Not started |
+| 9 | Response validation header | Not started |
+
+The shared implementation lives in `umbrella-base/umbrella-java`, so both servlet
+integrations and the Express middleware pick these up from one place. The Express
+middleware supports path filtering through its `includePath` / `excludePath` options.
+
 ## Executive Summary
 
 DataDome's implementation reveals several performance optimizations that Umbrella currently lacks. The most impactful improvements would be:
@@ -56,8 +76,8 @@ These additions would make Umbrella competitive with DataDome on performance whi
 - Reduced load on Umbrella API servers
 
 **Files to Modify:**
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaService.java`
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaServiceImpl.java`
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaService.java`
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaServiceImpl.java`
 - `umbrella-integration/umbrella-tomcat/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaFilter.java`
 - `umbrella-integration/umbrella-tomcat-javax/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaFilter.java`
 
@@ -103,7 +123,7 @@ Consider adding exclusion patterns to `Config` object so they can be updated dyn
 - Reduced noise in Umbrella analytics
 
 **Files to Create:**
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/IpAddressMatcher.java`
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/IpAddressMatcher.java`
 
 **Files to Modify:**
 - `umbrella-integration/umbrella-tomcat/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaFilter.java`
@@ -185,7 +205,7 @@ additionalHeaders: 256 bytes per header value
 - `umbrella-integration/umbrella-tomcat-javax/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaFilter.java`
 
 **Files to Create:**
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/StringTruncator.java` (utility class)
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/StringTruncator.java` (utility class)
 
 ---
 
@@ -240,8 +260,8 @@ additionalHeaders: 256 bytes per header value
 - Allows proxy-based filtering/logging
 
 **Files to Modify:**
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaService.java`
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaServiceImpl.java`
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaService.java`
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaServiceImpl.java`
 - `umbrella-integration/umbrella-tomcat/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaFilter.java`
 - `umbrella-integration/umbrella-tomcat-javax/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaFilter.java`
 
@@ -274,10 +294,10 @@ additionalHeaders: 256 bytes per header value
 - Reduced DNS server load
 
 **Files to Create:**
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/CachingDnsResolver.java`
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/CachingDnsResolver.java`
 
 **Files to Modify:**
-- `umbrella-integration/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaServiceImpl.java`
+- `umbrella-base/umbrella-java/src/main/java/io/dataspray/umbrella/integration/tomcat/UmbrellaServiceImpl.java`
 
 ---
 

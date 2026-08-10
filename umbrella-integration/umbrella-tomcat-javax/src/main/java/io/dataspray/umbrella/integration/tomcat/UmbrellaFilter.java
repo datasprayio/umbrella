@@ -49,6 +49,7 @@ public class UmbrellaFilter implements Filter {
     private static final Logger log = Logger.getLogger(UmbrellaFilter.class.getCanonicalName());
     private final UmbrellaService umbrellaService;
     boolean enabled = true;
+    RequestFilterConfig requestFilterConfig = RequestFilterConfig.none();
 
     public UmbrellaFilter() {
         this(UmbrellaService.create());
@@ -82,6 +83,16 @@ public class UmbrellaFilter implements Filter {
         Optional<String> endpointUrlOpt = getProperty("endpoint-url", "umbrella.endpoint.url", "UMBRELLA_ENDPOINT_URL", filterConfig);
         endpointUrlOpt.ifPresent(endpointUrl -> log.log(Level.INFO, "Umbrella using endpoint: {0}", endpointUrl));
 
+        // Request filtering: skip static assets and trusted internal traffic
+        try {
+            requestFilterConfig = new RequestFilterConfig(
+                    getProperty("inclusion-regex", "umbrella.inclusion.regex", "UMBRELLA_INCLUSION_REGEX", filterConfig),
+                    getProperty("exclusion-regex", "umbrella.exclusion.regex", "UMBRELLA_EXCLUSION_REGEX", filterConfig),
+                    getProperty("skip-ips", "umbrella.skip.ips", "UMBRELLA_SKIP_IPS", filterConfig));
+        } catch (IllegalArgumentException ex) {
+            throw new ServletException("Umbrella request filtering is misconfigured", ex);
+        }
+
         umbrellaService.init(
                 orgName,
                 apiKey,
@@ -113,6 +124,12 @@ public class UmbrellaFilter implements Filter {
             return;
         }
         HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+
+        if (!requestFilterConfig.shouldCheck(httpServletRequest.getRequestURI(), httpServletRequest.getRemoteAddr())) {
+            log.log(Level.FINEST, "Skipping request excluded by configuration");
+            filterChain.doFilter(servletRequest, servletResponse);
+            return;
+        }
 
         ServletExchange.Request request = new ServletExchange.Request(httpServletRequest);
         ServletExchange.Response response = new ServletExchange.Response(httpServletResponse);
