@@ -1,13 +1,21 @@
 {
   "name": "umbrella-client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Client library for DataSpray Umbrella",
   "author": {
     "name": "Matus Faro",
     "email": "matus@dataspray.io"
   },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datasprayio/umbrella.git",
+    "directory": "umbrella-base/umbrella-typescript"
+  },
+  "homepage": "https://github.com/datasprayio/umbrella",
   "scripts": {
     "build": "tsc",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/typescript/*.test.js",
     "publish-if-needed": "can-npm-publish && pnpm publish || echo 'Already published, skipping.'"
   },
   "devDependencies": {

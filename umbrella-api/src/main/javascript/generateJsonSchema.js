@@ -49,8 +49,10 @@ const outDir = process.argv[3];
 
     // Iterate over all endpoints and extract requests and responses
     const schemas = {}
+    const httpMethods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
     for (const [path, pathItem] of Object.entries(openApiDocDereferenced.paths)) {
         for (const [operation, operationItem] of Object.entries(pathItem)) {
+            if (!httpMethods.has(operation)) continue;
             if (operationItem.requestBody) {
                 for (const content of Object.values(operationItem.requestBody.content)) {
                     const schema = content.schema;
@@ -70,30 +72,28 @@ const outDir = process.argv[3];
         }
     }
 
-    // Custom logic to merge particular schemas together
-    // Disabled for now, merged manually
-    [
-        // ['HttpEvent', ['HttpEventRequest', 'HttpEventResponse']],
-        // ['CustomEvent', ['EventRequest', 'EventResponse']],
-    ].forEach(([title, parts]) => {
-        const schema = {
-            title,
-            type: 'object',
-            properties: {},
-            required: []
-        };
-        parts.forEach(part => {
-            const partSchema = schemas[part];
-            if (!partSchema) throw Error(`Schema ${part} not found from ${Object.keys(schemas)}`);
-            schema.properties = {...schema.properties, ...partSchema.properties};
-            schema.required = [...schema.required, ...(partSchema.required || [])];
-        });
-        schemas[title] = schema;
-    });
+    // The spec carries the jsonschema2pojo hint as a vendor extension so that it stays a valid OpenAPI document;
+    // downstream generators expect the bare keyword.
+    const renameVendorExtensions = (node) => {
+        if (Array.isArray(node)) {
+            node.forEach(renameVendorExtensions);
+            return;
+        }
+        if (node === null || typeof node !== 'object') return;
+        if ('x-existingJavaType' in node) {
+            node.existingJavaType = node['x-existingJavaType'];
+            delete node['x-existingJavaType'];
+        }
+        Object.values(node).forEach(renameVendorExtensions);
+    };
 
     // Write out schemas
     Object.entries(schemas).forEach(([name, schema]) => {
         const jsonSchema = openapiSchemaToJsonSchema(schema);
+        renameVendorExtensions(jsonSchema);
         fs.writeFileSync(`${outDir}/${name}.json`, JSON.stringify(jsonSchema, null, 2));
     });
-})()
+})().catch(err => {
+    console.error(err);
+    process.exit(1);
+});

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DataSpray Umbrella Shield API
-  version: 0.0.1
+  version: 0.0.2
 
 servers:
   - url: https://api.umbrella.dataspray.io
@@ -15,6 +15,14 @@ components:
       type: apiKey
       in: header
       name: Authorization
+  responses:
+    Unauthorized:
+      description: Missing or malformed credentials
+    Forbidden:
+      description: The API key is not valid for this organization or event type
+    TooManyRequests:
+      description: Rate limited; the client should back off and stop sending events until its next successful ping
+
   schemas:
     PingRequest:
       title: PingRequest
@@ -73,7 +81,7 @@ components:
           type: string
         metadata:
           type: object
-          existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
+          x-existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
           additionalProperties:
             type: string
     EventResponse:
@@ -89,17 +97,17 @@ components:
     CustomAction:
       title: CustomAction
       type: object
-      existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
+      x-existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
       additionalProperties:
         type: string
     Headers:
       type: object
-      existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
+      x-existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
       additionalProperties:
         type: string
     Attributes:
       type: object
-      existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
+      x-existingJavaType: 'com.google.common.collect.ImmutableMap<String, String>' # For jsonschema2pojo
       additionalProperties:
         type: string
     Cookies:
@@ -278,6 +286,7 @@ components:
           items:
             type: string
         cookieNames:
+          type: array
           items:
             type: string
         additionalHeaders:
@@ -307,6 +316,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PingResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /org/{org}/event/http:
     post:
       operationId: httpEvent
@@ -330,6 +345,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HttpEventResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /org/{org}/event/{eventType}:
     post:
       operationId: customEvent
@@ -358,3 +379,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EventResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'

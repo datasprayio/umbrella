@@ -1,3 +1,4 @@
+"use strict";
 /*
  * Copyright 2025 Matus Faro
  *
@@ -19,76 +20,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-import {
-    BaseAPI,
-    Configuration,
-    ConfigurationParameters,
-    HealthApi,
-    HealthApiInterface,
-    HTTPHeaders,
-    IngestApi,
-    IngestApiInterface
-} from "./client";
-
-export interface UmbrellaClientConfig {
-    apiKey?: string;
-    basePath?: ConfigurationParameters['basePath'];
-    fetchApi?: ConfigurationParameters['fetchApi'];
-}
-
-// Recommended way to create a constructor type
-// https://www.typescriptlang.org/docs/handbook/2/generics.html#using-class-types-in-generics
-type BaseAPIConstructor<T> = { new(conf: Configuration): T };
-
-export class UmbrellaClient {
-
-    static get(access: UmbrellaClientConfig): UmbrellaClient {
-        return new UmbrellaClient(access);
-    }
-
-    private headers: HTTPHeaders = {};
-    private config: Configuration;
-    private clientCache = new Map<BaseAPIConstructor<any>, BaseAPI>();
-
-    constructor(access: UmbrellaClientConfig) {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UmbrellaClient = void 0;
+var client_1 = require("./client");
+var UmbrellaClient = /** @class */ (function () {
+    function UmbrellaClient(access) {
+        this.headers = {};
+        this.clientCache = new Map();
         access.apiKey && this.setApiKey(access.apiKey);
-        this.config = new Configuration({
+        this.config = new client_1.Configuration({
             basePath: access.basePath,
             // Can be cast as any: https://github.com/node-fetch/node-fetch/issues/359#issuecomment-342571083
             fetchApi: access.fetchApi,
             headers: this.headers,
         });
     }
-
-    ingest(): IngestApiInterface {
-        return this.getClient(IngestApi);
-    }
-
-    health(): HealthApiInterface {
-        return this.getClient(HealthApi);
-    }
-
+    UmbrellaClient.get = function (access) {
+        return new UmbrellaClient(access);
+    };
+    UmbrellaClient.prototype.ingest = function () {
+        return this.getClient(client_1.IngestApi);
+    };
+    UmbrellaClient.prototype.health = function () {
+        return this.getClient(client_1.HealthApi);
+    };
     /**
      * Set the API key to be used by the client. Takes effect immediately for existing clients.
      */
-    setApiKey(apiKey: string) {
-        this.headers['Authorization'] = `apikey ${apiKey}`;
-    }
-
+    UmbrellaClient.prototype.setApiKey = function (apiKey) {
+        this.headers['Authorization'] = "apikey ".concat(apiKey);
+    };
     /**
      * Unset the api key. Takes effect immediately for existing clients.
      */
-    unsetAuth() {
+    UmbrellaClient.prototype.unsetAuth = function () {
         delete this.headers['Authorization'];
-    }
-
-    private getClient<T extends BaseAPI>(ctor: BaseAPIConstructor<T>): T {
-        let client: T = this.clientCache.get(ctor) as T;
+    };
+    UmbrellaClient.prototype.getClient = function (ctor) {
+        var client = this.clientCache.get(ctor);
         if (!client) {
             client = new ctor(this.config);
             this.clientCache.set(ctor, client);
         }
         return client;
-    }
-}
+    };
+    return UmbrellaClient;
+}());
+exports.UmbrellaClient = UmbrellaClient;

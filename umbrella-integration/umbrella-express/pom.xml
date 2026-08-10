@@ -34,7 +34,7 @@
     <groupId>io.dataspray.umbrella.integration</groupId>
     <artifactId>umbrella-express</artifactId>
     <version>0.0.2</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
 
     <name>Umbrella Integration Express</name>
     <url>https://dataspray.io</url>
@@ -60,6 +60,13 @@
                                     <followSymlinks>false</followSymlinks>
                                 </fileset>
                                 <fileset>
+                                    <directory>${project.basedir}/dist-test</directory>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                    <followSymlinks>false</followSymlinks>
+                                </fileset>
+                                <fileset>
                                     <directory>${project.basedir}/node_modules</directory>
                                     <includes>
                                         <include>**</include>
@@ -70,6 +77,71 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install node and pnpm</id>
+                        <goals>
+                            <goal>install-node-and-pnpm</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                        <configuration>
+                            <nodeVersion>${node.version}</nodeVersion>
+                            <pnpmVersion>${pnpm.version}</pnpmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>pnpm install</id>
+                        <goals>
+                            <goal>pnpm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install --production=false</arguments>
+                        </configuration>
+                        <phase>initialize</phase>
+                    </execution>
+                    <execution>
+                        <id>pnpm test</id>
+                        <goals>
+                            <goal>pnpm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run test</arguments>
+                            <skip>${skipTests}</skip>
+                        </configuration>
+                        <phase>test</phase>
+                    </execution>
+                    <execution>
+                        <id>pnpm run build</id>
+                        <goals>
+                            <goal>pnpm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                        <phase>prepare-package</phase>
+                    </execution>
+                    <execution>
+                        <id>pnpm run publish-if-needed</id>
+                        <goals>
+                            <goal>pnpm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run publish-if-needed</arguments>
+                        </configuration>
+                        <phase>deploy</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <installDirectory>${maven.multiModuleProjectDirectory}</installDirectory>
+                    <nodeVersion>${node.version}</nodeVersion>
+                    <environmentVariables>
+                        <ADBLOCK>1</ADBLOCK>
+                    </environmentVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>

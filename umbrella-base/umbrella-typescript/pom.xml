@@ -109,6 +109,7 @@
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.9.0</version>
                 <executions>
                     <execution>
                         <id>generate-client-typescript</id>
@@ -116,13 +117,12 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <!-- Disables spec validation, for "existingJavaType" -->
-                            <skipValidateSpec>true</skipValidateSpec>
+                            <skipValidateSpec>false</skipValidateSpec>
                             <inputSpec>${project.build.directory}/unpacked-resources/openapi/umbrella-api.yaml
                             </inputSpec>
                             <generatorName>typescript-fetch</generatorName>
                             <ignoreFileOverride>
-                                ${project.basedir}/src/main/openapi/template/java/.openapi-generator-ignore
+                                ${project.basedir}/src/main/typescript/client/.openapi-generator-ignore
                             </ignoreFileOverride>
                             <output>${project.basedir}/src/main/typescript/client</output>
                             <configOptions>
@@ -173,6 +173,17 @@
                         <phase>prepare-package</phase>
                     </execution>
                     <execution>
+                        <id>pnpm test</id>
+                        <goals>
+                            <goal>pnpm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run test</arguments>
+                            <skip>${skipTests}</skip>
+                        </configuration>
+                        <phase>test</phase>
+                    </execution>
+                    <execution>
                         <id>pnpm run publish-if-needed</id>
                         <goals>
                             <goal>pnpm</goal>
@@ -184,7 +195,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <installDirectory>${pom.parent.parent.basedir}</installDirectory>
+                    <installDirectory>${maven.multiModuleProjectDirectory}</installDirectory>
                     <nodeVersion>${node.version}</nodeVersion>
                     <environmentVariables>
                         <ADBLOCK>1</ADBLOCK>
