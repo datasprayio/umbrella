@@ -31,7 +31,7 @@ umbrella/
     └── umbrella-express/          #   npm `umbrella-express`; Express middleware over the TS client
 ```
 
-Key architectural docs: [CLIENT-ARCHITECTURE.md](CLIENT-ARCHITECTURE.md) (two-tier client design, implementation contract) and [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) (planned features — note its `umbrella-integration/umbrella-java/...` file paths are stale; that module now lives at `umbrella-base/umbrella-java/`).
+Key architectural docs: [CLIENT-ARCHITECTURE.md](CLIENT-ARCHITECTURE.md) (two-tier client design, implementation contract) and [IMPROVEMENT-PLAN.md](IMPROVEMENT-PLAN.md) (feature roadmap, with a status table — Phase 1 is implemented).
 
 ## Architecture Notes (important when editing)
 
@@ -66,7 +66,7 @@ mvn test -Dtest=UmbrellaFilterTest
 # 3. Rebuild umbrella-base modules                 (regenerates clients)
 ```
 
-Publishing: Maven artifacts are GPG-signed and deployed via nexus-staging; npm packages publish during the Maven `deploy` phase (`can-npm-publish` guard). `exists-maven-plugin` skips already-published versions — **version bumps are required for any republish**.
+Publishing: Maven artifacts are GPG-signed and deployed via `central-publishing-maven-plugin` (Central Portal); npm packages publish during the Maven `deploy` phase (`can-npm-publish` guard). `exists-maven-plugin` skips already-published versions — **version bumps are required for any republish**.
 
 ## Tool Requirements
 
