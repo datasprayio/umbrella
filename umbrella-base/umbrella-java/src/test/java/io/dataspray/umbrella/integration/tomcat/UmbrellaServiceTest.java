@@ -130,6 +130,40 @@ class UmbrellaServiceTest {
     }
 
     @Test
+    void testInitForbiddenStillSchedulesRetry() throws Exception {
+        mockWebServer.enqueue(new MockResponse().setResponseCode(403));
+
+        umbrellaService.init(
+                "org_name",
+                "api_key",
+                Collections.singletonList("nodeIdentifier"),
+                Optional.of(mockWebServer.url("/").toString()));
+
+        // A rejected key must not disable protection until the process restarts
+        assertNotNull(umbrellaService.executor);
+        assertFalse(umbrellaService.executor.isShutdown());
+        assertEquals(OperationMode.DISABLED, umbrellaService.config.getMode());
+    }
+
+    @Test
+    void testHttpEventRateLimitedDisablesUntilNextPing() throws Exception {
+        mockPingServerEndpoint(OperationMode.BLOCKING, 3000L);
+        umbrellaService.init(
+                "org_name",
+                "api_key",
+                Collections.singletonList("nodeIdentifier"),
+                Optional.of(mockWebServer.url("/").toString()));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(429));
+
+        HttpAction actionActual = umbrellaService.httpEvent(new HttpMetadata());
+
+        assertEquals(UmbrellaServiceImpl.DEFAULT_ALLOW_ACTION, actionActual);
+        assertEquals(OperationMode.DISABLED, umbrellaService.config.getMode());
+        // The timeout carried over from the previous config rather than being lost with it
+        assertEquals(3000L, umbrellaService.config.getTimeoutMs());
+    }
+
+    @Test
     void testHttpEventDisabled() throws Exception {
         mockPingServerEndpoint(OperationMode.DISABLED, 3000L);
         umbrellaService.init(

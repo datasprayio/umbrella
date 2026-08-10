@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collections;
@@ -179,7 +180,7 @@ class UmbrellaFilterTest {
     }
 
     @Test
-    void testDoFilterBlock() throws Exception {
+    void testDoFilterAllowAppliesAction() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
@@ -204,6 +205,86 @@ class UmbrellaFilterTest {
         verify(response, times(1)).setStatus(301);
         verify(response, times(1)).addCookie(eq(new jakarta.servlet.http.Cookie("cookieName", "cookieValue")));
         verify(response, times(1)).setHeader(eq("headerName"), eq("headerValue"));
+    }
+
+    @Test
+    void testDoFilterBlockStopsChain() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(umbrellaService.httpEvent(any())).thenReturn(new HttpAction()
+                .requestProcess(RequestProcess.BLOCK)
+                .responseStatus(429L));
+
+        umbrellaFilter.doFilter(request, response, chain);
+
+        verify(chain, never()).doFilter(any(), any());
+        verify(response, times(1)).sendError(429);
+    }
+
+    @Test
+    void testDoFilterBlockWithoutStatusSendsForbidden() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(umbrellaService.httpEvent(any())).thenReturn(new HttpAction()
+                .requestProcess(RequestProcess.BLOCK));
+
+        umbrellaFilter.doFilter(request, response, chain);
+
+        verify(chain, never()).doFilter(any(), any());
+        verify(response, times(1)).sendError(403);
+    }
+
+    @Test
+    void testDoFilterUnknownProcessFailsOpen() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(umbrellaService.httpEvent(any())).thenReturn(new HttpAction());
+
+        umbrellaFilter.doFilter(request, response, chain);
+
+        verify(chain, times(1)).doFilter(eq(request), eq(response));
+        verify(response, never()).sendError(anyInt());
+    }
+
+    @Test
+    void testDoFilterCollectsTlsFromSslSession() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        SSLSession sslSession = mock(SSLSession.class);
+        when(sslSession.getCipherSuite()).thenReturn("TLS_AES_256_GCM_SHA384");
+        when(sslSession.getProtocol()).thenReturn("TLSv1.3");
+        when(request.getAttribute("jakarta.servlet.request.ssl_session")).thenReturn(sslSession);
+        when(umbrellaService.httpEvent(any())).thenReturn(new HttpAction()
+                .requestProcess(RequestProcess.ALLOW));
+
+        umbrellaFilter.doFilter(request, response, chain);
+
+        ArgumentCaptor<HttpMetadata> dataCaptor = ArgumentCaptor.forClass(HttpMetadata.class);
+        verify(umbrellaService, times(1)).httpEvent(dataCaptor.capture());
+        assertEquals("TLS_AES_256_GCM_SHA384", dataCaptor.getValue().getTlsCipher());
+        assertEquals("TLSv1.3", dataCaptor.getValue().getTlsProto());
+    }
+
+    @Test
+    void testDoFilterRecordsSpentTime() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(umbrellaService.httpEvent(any())).thenReturn(new HttpAction()
+                .requestProcess(RequestProcess.ALLOW));
+
+        umbrellaFilter.doFilter(request, response, chain);
+
+        verify(request, times(1)).setAttribute(eq(UmbrellaHttpExchange.ATTRIBUTE_SPENT_TIME_MS), any(Long.class));
     }
 
     @Test

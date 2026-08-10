@@ -24,22 +24,25 @@ package io.dataspray.umbrella.integration.tomcat;
 
 import io.dataspray.umbrella.client.model.HttpAction;
 import io.dataspray.umbrella.client.model.HttpMetadata;
-import io.dataspray.umbrella.client.model.RequestProcess;
-import jakarta.servlet.*;
-import jakarta.servlet.http.Cookie;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class UmbrellaFilter implements Filter {
 
@@ -105,130 +108,23 @@ public class UmbrellaFilter implements Filter {
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
 
         if (!(servletResponse instanceof HttpServletResponse)) {
-            log.fine("Skipping non-HTTP response");
+            log.log(Level.FINE, "Skipping non-HTTP response");
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
         HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
 
-        // Prepare request
-        HttpMetadata data = new HttpMetadata();
-        data.setTs(Instant.now());
-        data.setUri(httpServletRequest.getRequestURI());
-        data.setMethod(httpServletRequest.getMethod());
-        data.setProto(httpServletRequest.getScheme());
-        data.setIp(httpServletRequest.getRemoteAddr());
-        data.sethXFwdProto(httpServletRequest.getHeader("X-Forwarded-Proto"));
-        data.sethCfConnIp(httpServletRequest.getHeader("CF-Connecting-IP"));
-        data.sethTrueClientIp(httpServletRequest.getHeader("True-Client-IP"));
-        data.sethXRealIp(httpServletRequest.getHeader("X-Real-IP"));
-        data.sethFwd(httpServletRequest.getHeader("Forwarded"));
-        data.sethXFwdFor(httpServletRequest.getHeader("X-Forwarded-For"));
-        data.sethVia(httpServletRequest.getHeader("Via"));
-        data.setPort((long) httpServletRequest.getRemotePort());
-        data.sethXFwdPort(httpServletRequest.getHeader("X-Forwarded-Port"));
-        data.sethXFwdHost(httpServletRequest.getHeader("X-Forwarded-Host"));
-        data.sethXReqWith(httpServletRequest.getHeader("X-Requested-With"));
-        data.sethUserAgent(httpServletRequest.getHeader("User-Agent"));
-        String headerAuthorization = httpServletRequest.getHeader("Authorization");
-        if (headerAuthorization != null) {
-            String[] headerAuthorizationSplit = headerAuthorization.split(" +");
-            if (headerAuthorizationSplit.length > 1) {
-                data.sethAuthPrefix(headerAuthorizationSplit[0]);
-            }
-            data.sethAuthSize((long) headerAuthorization.length());
-        }
-        data.sethXReqId(httpServletRequest.getHeader("X-Request-ID"));
-        data.sethAccept(httpServletRequest.getHeader("Accept"));
-        data.sethAcceptLanguage(httpServletRequest.getHeader("Accept-Language"));
-        data.sethAcceptCharset(httpServletRequest.getHeader("Accept-Charset"));
-        data.sethAcceptEncoding(httpServletRequest.getHeader("Accept-Encoding"));
-        data.sethConnection(httpServletRequest.getHeader("Connection"));
-        data.sethContentType(httpServletRequest.getHeader("Content-Type"));
-        data.sethFrom(httpServletRequest.getHeader("From"));
-        data.sethHost(httpServletRequest.getHeader("Host"));
-        data.sethOrigin(httpServletRequest.getHeader("Origin"));
-        data.setContentLength(httpServletRequest.getContentLengthLong());
-        data.sethPragma(httpServletRequest.getHeader("Pragma"));
-        data.sethReferer(httpServletRequest.getHeader("Referer"));
-        data.sethSecChDevMem(httpServletRequest.getHeader("Sec-CH-Device-Memory"));
-        data.sethSecChUa(httpServletRequest.getHeader("Sec-CH-UA"));
-        data.sethSecChUaModel(httpServletRequest.getHeader("Sec-CH-UA-Model"));
-        data.sethSecChUaFull(httpServletRequest.getHeader("Sec-CH-UA-Full-Version"));
-        data.sethSecChUaMobile(httpServletRequest.getHeader("Sec-CH-UA-Mobile"));
-        data.sethSecChUaPlatform(httpServletRequest.getHeader("Sec-CH-UA-Platform"));
-        data.sethSecChUaArch(httpServletRequest.getHeader("Sec-CH-UA-Arch"));
-        data.sethSecFetchDest(httpServletRequest.getHeader("Sec-Fetch-Dest"));
-        data.sethSecFetchMode(httpServletRequest.getHeader("Sec-Fetch-Mode"));
-        data.sethSecFetchSite(httpServletRequest.getHeader("Sec-Fetch-Site"));
-        data.sethSecFetchUser(httpServletRequest.getHeader("Sec-Fetch-User"));
-        Object sslSessionAttr = httpServletRequest.getAttribute("javax.servlet.request.ssl_session");
-        if (sslSessionAttr instanceof SSLSession) {
-            SSLSession sslSession = (SSLSession) sslSessionAttr;
-            data.setTlsCipher(sslSession.getProtocol());
-            data.setTlsProto(sslSession.getCipherSuite());
-        }
-        Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
-        if (headerNames != null) {
-            data.setHeaderNames(Collections.list(headerNames));
-        }
-        Cookie[] cookies = httpServletRequest.getCookies();
-        if (cookies != null) {
-            data.setCookieNames(Arrays.stream(cookies)
-                    .map(Cookie::getName)
-                    .collect(Collectors.toList()));
-        }
-        if (!umbrellaService.additionalHeadersToCollect().isEmpty()) {
-            Map<String, String> additionalHeaders = new HashMap<>();
-            data.additionalHeaders(additionalHeaders);
-            umbrellaService.additionalHeadersToCollect().forEach(header -> {
-                String value = httpServletRequest.getHeader(header);
-                if (value != null) {
-                    additionalHeaders.put(header, value);
-                }
-            });
-        }
+        ServletExchange.Request request = new ServletExchange.Request(httpServletRequest);
+        ServletExchange.Response response = new ServletExchange.Response(httpServletResponse);
 
-        // Perform check
+        long startedNs = System.nanoTime();
+        HttpMetadata data = UmbrellaHttpExchange.collect(request, umbrellaService.additionalHeadersToCollect());
         HttpAction httpAction = umbrellaService.httpEvent(data);
+        httpServletRequest.setAttribute(
+                UmbrellaHttpExchange.ATTRIBUTE_SPENT_TIME_MS,
+                (System.nanoTime() - startedNs) / 1_000_000L);
 
-        // Apply action
-        if (httpAction.getRequestMetadata() != null) {
-            httpAction.getRequestMetadata().forEach(httpServletRequest::setAttribute);
-        }
-        if (httpAction.getResponseHeaders() != null) {
-            httpAction.getResponseHeaders().forEach(httpServletResponse::setHeader);
-        }
-        if (httpAction.getResponseCookies() != null) {
-            httpAction.getResponseCookies().forEach(cookie -> {
-                Cookie servletCookie = new Cookie(cookie.getName(), cookie.getValue());
-                if (cookie.getDomain() != null) {
-                    servletCookie.setDomain(cookie.getDomain());
-                }
-                if (cookie.getPath() != null) {
-                    servletCookie.setPath(cookie.getPath());
-                }
-                if (cookie.getMaxAge() != null) {
-                    servletCookie.setMaxAge(cookie.getMaxAge().intValue());
-                }
-                if (cookie.getSecure() != null) {
-                    servletCookie.setSecure(cookie.getSecure());
-                }
-                if (cookie.getHttpOnly() != null) {
-                    servletCookie.setHttpOnly(cookie.getHttpOnly());
-                }
-                if (cookie.getSameSite() != null) {
-                    servletCookie.setAttribute("SameSite", cookie.getSameSite());
-                }
-                httpServletResponse.addCookie(servletCookie);
-            });
-        }
-        if (httpAction.getResponseStatus() != null) {
-            httpServletResponse.setStatus(httpAction.getResponseStatus().intValue());
-        }
-
-        // Continue processing if allowed
-        if (RequestProcess.ALLOW.equals(httpAction.getRequestProcess())) {
+        if (UmbrellaHttpExchange.applyAndShouldContinue(httpAction, request, response)) {
             filterChain.doFilter(servletRequest, servletResponse);
         }
     }

@@ -52,9 +52,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -64,6 +67,15 @@ class UmbrellaServiceImpl implements UmbrellaService {
 
     private static final Logger log = Logger.getLogger(UmbrellaServiceImpl.class.getCanonicalName());
     private static final long PING_INTERVAL_MINUTES = 10L;
+    /**
+     * Applied when the server has not supplied a timeout, so that a degraded API cannot hold request threads for
+     * OkHttp's much longer default.
+     */
+    static final long DEFAULT_CALL_TIMEOUT_MS = 2_000L;
+    /**
+     * Bounds the MONITOR mode backlog; beyond this, events are dropped rather than accumulating without limit.
+     */
+    static final int MONITOR_QUEUE_CAPACITY = 1_000;
     static final HttpAction DEFAULT_ALLOW_ACTION = new HttpAction()
             .requestProcess(RequestProcess.ALLOW);
     private String orgName;
@@ -73,11 +85,15 @@ class UmbrellaServiceImpl implements UmbrellaService {
     volatile Config config = new Config()
             .mode(OperationMode.DISABLED);
     /**
-     * Used for:
-     * - Background pinging
-     * - Async events (in MONITOR mode)
+     * Background pinging.
      */
     ScheduledExecutorService executor;
+    /**
+     * Async events (in MONITOR mode), kept separate so a backlog of events cannot delay pings.
+     */
+    ThreadPoolExecutor monitorExecutor;
+    private final AtomicLong monitorDroppedCount = new AtomicLong();
+    private long appliedCallTimeoutMs = DEFAULT_CALL_TIMEOUT_MS;
 
     @Override
     public void init(
@@ -95,12 +111,8 @@ class UmbrellaServiceImpl implements UmbrellaService {
         try {
             doPing();
         } catch (ApiException ex) {
-            if (ex.getCode() == 403) {
-                log.log(Level.SEVERE, "Api key is invalid, continuing with Umbrella Filter disabled", ex);
-                return;
-            } else {
-                log.log(Level.SEVERE, "Failed to initialize Umbrella, continuing with Umbrella Filter disabled but will retry later", ex);
-            }
+            // Including 403: an expired or not-yet-propagated key must not disable protection until the next restart
+            log.log(Level.SEVERE, "Failed to initialize Umbrella, continuing disabled but will retry at the next ping", ex);
         }
 
         this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -109,6 +121,22 @@ class UmbrellaServiceImpl implements UmbrellaService {
             thread.setDaemon(true);
             return thread;
         });
+        this.monitorExecutor = new ThreadPoolExecutor(
+                1, 1,
+                0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(MONITOR_QUEUE_CAPACITY),
+                r -> {
+                    Thread thread = new Thread(r);
+                    thread.setName("Umbrella Monitor");
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                (r, e) -> {
+                    long dropped = monitorDroppedCount.incrementAndGet();
+                    if (dropped == 1 || dropped % 1_000 == 0) {
+                        log.log(Level.WARNING, "Umbrella monitor queue is full, dropped {0} events", dropped);
+                    }
+                });
         executor.scheduleAtFixedRate(() -> {
             try {
                 doPing();
@@ -116,6 +144,10 @@ class UmbrellaServiceImpl implements UmbrellaService {
                 log.log(Level.WARNING, "Failed to ping Umbrella", ex);
             }
         }, PING_INTERVAL_MINUTES, PING_INTERVAL_MINUTES, TimeUnit.MINUTES);
+    }
+
+    long getMonitorDroppedCount() {
+        return monitorDroppedCount.get();
     }
 
     @Override
@@ -131,6 +163,9 @@ class UmbrellaServiceImpl implements UmbrellaService {
         ApiClient apiClient = new ApiClient();
         apiClient.setApiKeyPrefix("apikey");
         apiClient.setApiKey(apiKey);
+        apiClient.setHttpClient(apiClient.getHttpClient().newBuilder()
+                .callTimeout(DEFAULT_CALL_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .build());
         endpointUrl.ifPresent(apiClient::setBasePath);
         return apiClient;
     }
@@ -147,13 +182,15 @@ class UmbrellaServiceImpl implements UmbrellaService {
                     return DEFAULT_ALLOW_ACTION;
                 }
             case MONITOR:
-                executor.execute(() -> {
-                    try {
-                        doHttpEvent(data, currentMode);
-                    } catch (Exception ex) {
-                        log.log(Level.WARNING, "Failed to publish http event", ex);
-                    }
-                });
+                if (monitorExecutor != null) {
+                    monitorExecutor.execute(() -> {
+                        try {
+                            doHttpEvent(data, currentMode);
+                        } catch (Exception ex) {
+                            log.log(Level.WARNING, "Failed to publish http event", ex);
+                        }
+                    });
+                }
                 return DEFAULT_ALLOW_ACTION;
             case DISABLED:
             default:
@@ -165,6 +202,9 @@ class UmbrellaServiceImpl implements UmbrellaService {
     public void shutdown() {
         if (this.executor != null) {
             this.executor.shutdown();
+        }
+        if (this.monitorExecutor != null) {
+            this.monitorExecutor.shutdown();
         }
     }
 
@@ -179,7 +219,8 @@ class UmbrellaServiceImpl implements UmbrellaService {
         } catch (ApiException exception) {
             if (exception.getCode() == 429) {
                 log.log(Level.SEVERE, "Rate limited by Umbrella, disabling mode until next ping");
-                config.setMode(OperationMode.DISABLED);
+                // Replace rather than mutate: the config object is shared across request threads
+                config = copyOf(config).mode(OperationMode.DISABLED);
             }
             throw exception;
         }
@@ -198,20 +239,29 @@ class UmbrellaServiceImpl implements UmbrellaService {
         }
     }
 
-    private void onNewConfig(Config newConfig) {
-        if (!Objects.equals(config.getTimeoutMs(), newConfig.getTimeoutMs())) {
-            // Call timeout only set if requested and in blocking mode
-            long callTimeout = newConfig.getTimeoutMs() == null || newConfig.getMode() != OperationMode.BLOCKING
-                    ? 0L
-                    : newConfig.getTimeoutMs();
-            healthApi.getApiClient().setHttpClient(new OkHttpClient.Builder()
+    private synchronized void onNewConfig(Config newConfig) {
+        // The server supplied timeout bounds the synchronous call made in blocking mode. Other modes still get a
+        // default, so that a degraded API cannot hold a thread for OkHttp's much longer default.
+        long callTimeout = newConfig.getTimeoutMs() != null && newConfig.getMode() == OperationMode.BLOCKING
+                ? newConfig.getTimeoutMs()
+                : DEFAULT_CALL_TIMEOUT_MS;
+        if (callTimeout != appliedCallTimeoutMs) {
+            // healthApi and ingestApi share one ApiClient; derive from the existing client so its connection pool and
+            // any configured interceptors survive the timeout change
+            ApiClient apiClient = ingestApi.getApiClient();
+            apiClient.setHttpClient(apiClient.getHttpClient().newBuilder()
                     .callTimeout(callTimeout, TimeUnit.MILLISECONDS)
                     .build());
-            ingestApi.getApiClient().setHttpClient(new OkHttpClient.Builder()
-                    .callTimeout(callTimeout, TimeUnit.MILLISECONDS)
-                    .build());
+            appliedCallTimeoutMs = callTimeout;
         }
         config = newConfig;
+    }
+
+    private Config copyOf(Config source) {
+        return new Config()
+                .mode(source.getMode())
+                .timeoutMs(source.getTimeoutMs())
+                .collectAdditionalHeaders(source.getCollectAdditionalHeaders());
     }
 
     private String constructNodeIdentifier(List<String> nodeIdentifierParts) {
