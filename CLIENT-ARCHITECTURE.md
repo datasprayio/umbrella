@@ -221,7 +221,9 @@ HttpAction httpEvent(HttpMetadata data)
 **Async Event Queue (MONITOR mode):**
 - Thread pool executor for background HTTP events
 - Share with ping scheduler or use separate pool
-- Queue size should prevent memory exhaustion
+- Queue size should prevent memory exhaustion (the Java client uses a bounded
+  executor of 1000 events and counts drops; the TypeScript client bounds
+  in-flight events the same way)
 
 #### 5. Shutdown
 ```java
@@ -494,16 +496,30 @@ String nodeId = String.join("; ", parts);
 - Java Version: 11+
 
 **TypeScript (Base Client):**
-- Module: `umbrella-base/umbrella-typescript`
+- Module: `umbrella-base/umbrella-typescript`, npm `umbrella-client`
 - GroupId: `io.dataspray.umbrella.base`
 - Files:
   - `umbrellaClient.ts` - Wrapper around generated client
+  - `umbrellaService.ts` - Operation modes, background ping, fail-open behaviour
   - `client/*` - Generated from OpenAPI spec
 - Uses fetch API for HTTP requests
 
 **Express.js:**
-- Module: `umbrella-integration/umbrella-express`
-- Status: Not yet implemented
+- Module: `umbrella-integration/umbrella-express`, npm `umbrella-express`
+- Exports `umbrella(options)`, returning middleware with `start()` and `stop()`
+- Supports `includePath` / `excludePath` regexes for skipping requests
+
+### Shared servlet logic
+
+`umbrella-base/umbrella-java` holds the request collection and action enforcement
+used by every servlet integration:
+
+- `HttpExchangeAdapter` - the seam each servlet API implements
+- `UmbrellaHttpExchange` - collection, truncation and enforcement, written once
+- `RequestFilterConfig`, `IpAddressMatcher`, `StringTruncator` - request skipping and size caps
+
+A servlet integration therefore consists of a `ServletExchange` adapter and a thin
+`UmbrellaFilter`; behaviour changes belong in the shared classes.
 
 ---
 
